@@ -1,0 +1,124 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+    background: linear-gradient(180deg, #f2fff8 0%, #f6fbff 45%, #ffffff 100%);
+    color: #0f172a;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+}
+
+.stage {
+    width: clamp(320px, 96vw, 1600px);
+    min-height: clamp(520px, 90vh, 1400px);
+    padding: clamp(24px, 4vw, 48px) clamp(20px, 3vw, 48px) clamp(32px, 4vw, 56px);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(16px, 2.5vw, 28px);
+    background: rgba(255, 255, 255, 0.94);
+    border-radius: 16px;
+    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
+}
+
+.canvas-shell {
+    position: relative;
+    border-radius: 14px;
+    background: linear-gradient(145deg, #e8f9f1, #f2fbff);
+    border: 1px solid rgba(47, 133, 90, 0.25);
+    min-height: clamp(480px, 80vh, 1200px);
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.loading-hint {
+    margin: 0;
+    color: #427663;
+    font-size: 0.95rem;
+}
+
+canvas {
+    max-width: 100%;
+    height: auto !important;
+}
+
+.status-panel {
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(47, 133, 90, 0.25);
+    background: rgba(233, 248, 240, 0.86);
+    line-height: 1.6;
+}
+
+.status-panel strong {
+    color: #1b5e20;
+}
+
+.lsystem-gui {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 20;
+    font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+}
+
+.gui-fallback-hint {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    max-width: 260px;
+    padding: 12px 16px;
+    background: #fef3c7;
+    color: #854d0e;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(148, 92, 8, 0.18);
+    font-size: 0.9rem;
+    line-height: 1.4;
+    z-index: 10;
+}
+
+@media (max-width: 900px) {
+    body {
+        padding: 24px 12px;
+    }
+
+    .stage {
+        width: 100%;
+        min-height: clamp(440px, 78vh, 820px);
+        padding: 24px 18px 32px;
+        gap: 20px;
+    }
+
+    .canvas-shell {
+        min-height: clamp(340px, 65vh, 600px);
+    }
+
+    .lsystem-gui {
+        position: static;
+        margin: 0 auto 12px;
+    }
+}
+
+@media (max-width: 600px) {
+    body {
+        padding: 24px 10px;
+    }
+
+    .stage {
+        min-height: auto;
+        padding: 18px 14px 28px;
+        gap: 18px;
+    }
+
+    .canvas-shell {
+        min-height: 320px;
+    }
+}

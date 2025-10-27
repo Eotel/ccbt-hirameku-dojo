@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCBTひらめく道場 - アルゴリズムで絵を描こう</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .sketches-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .sketch-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .sketch-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .sketch-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .sketch-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .sketch-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .sketch-subtitle {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .sketch-body {
+            padding: 20px;
+        }
+
+        .sketch-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .sketch-keywords {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .keyword {
+            background: #f0f0f0;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .workshop-info {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .workshop-info h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .workshop-info p {
+            color: #666;
+            line-height: 1.8;
+        }
+
+        footer {
+            text-align: center;
+            color: white;
+            opacity: 0.8;
+            padding: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎨 CCBTひらめく道場</h1>
+            <p class="subtitle">プログラミング入門 - アルゴリズムで絵を描こう</p>
+        </header>
+
+        <div class="workshop-info">
+            <h2>ワークショップについて</h2>
+            <p>
+                自然の中には、シンプルなルール（アルゴリズム）から生まれる美しいパターンがたくさんあります。
+                このワークショップでは、木の成長、動物の模様、雲の形など、自然界のアルゴリズムをコードで再現しながら、
+                プログラミングの基礎とアルゴリズム的思考を学びます。
+            </p>
+        </div>
+
+        <div class="sketches-grid">
+            <a href="sketchs/01_lsystem/index.html" class="sketch-card">
+                <div class="sketch-header">
+                    <div class="sketch-icon">🌳</div>
+                    <div class="sketch-title">L-System</div>
+                    <div class="sketch-subtitle">リンデンマイヤー・システム</div>
+                </div>
+                <div class="sketch-body">
+                    <p class="sketch-description">
+                        シンプルなルールの繰り返しで、本物のような木の形を作ります。
+                        植物の成長パターンをアルゴリズムで再現してみましょう。
+                    </p>
+                    <div class="sketch-keywords">
+                        <span class="keyword">再帰</span>
+                        <span class="keyword">文字列書き換え</span>
+                        <span class="keyword">フラクタル</span>
+                    </div>
+                </div>
+            </a>
+
+            <a href="sketchs/02_voronoi/index.html" class="sketch-card">
+                <div class="sketch-header">
+                    <div class="sketch-icon">🦒</div>
+                    <div class="sketch-title">ボロノイ図</div>
+                    <div class="sketch-subtitle">領域分割アルゴリズム</div>
+                </div>
+                <div class="sketch-body">
+                    <p class="sketch-description">
+                        「最も近い点」を探すルールで、キリンの模様や細胞のような
+                        有機的なパターンを作ります。
+                    </p>
+                    <div class="sketch-keywords">
+                        <span class="keyword">距離計算</span>
+                        <span class="keyword">領域分割</span>
+                        <span class="keyword">動物の模様</span>
+                    </div>
+                </div>
+            </a>
+
+            <a href="sketchs/03_perlin_noise/index.html" class="sketch-card">
+                <div class="sketch-header">
+                    <div class="sketch-icon">☁️</div>
+                    <div class="sketch-title">パーリンノイズ</div>
+                    <div class="sketch-subtitle">自然なランダムさ</div>
+                </div>
+                <div class="sketch-body">
+                    <p class="sketch-description">
+                        雲、地形、波など、自然界の「滑らかなランダムさ」を
+                        表現するアルゴリズムを学びます。
+                    </p>
+                    <div class="sketch-keywords">
+                        <span class="keyword">ノイズ関数</span>
+                        <span class="keyword">地形生成</span>
+                        <span class="keyword">テクスチャ</span>
+                    </div>
+                </div>
+            </a>
+
+            <a href="sketchs/04_cellular_automaton/index.html" class="sketch-card">
+                <div class="sketch-header">
+                    <div class="sketch-icon">🐚</div>
+                    <div class="sketch-title">セルオートマトン</div>
+                    <div class="sketch-subtitle">創発するパターン</div>
+                </div>
+                <div class="sketch-body">
+                    <p class="sketch-description">
+                        貝殻の模様は、隣のセルを見て次の状態を決めるシンプルな
+                        ルールから生まれます。複雑さの創発を体験しましょう。
+                    </p>
+                    <div class="sketch-keywords">
+                        <span class="keyword">ルールベース</span>
+                        <span class="keyword">創発</span>
+                        <span class="keyword">貝殻の模様</span>
+                    </div>
+                </div>
+            </a>
+
+            <a href="sketchs/references.html" class="sketch-card">
+                <div class="sketch-header">
+                    <div class="sketch-icon">📚</div>
+                    <div class="sketch-title">参考文献・リソース</div>
+                    <div class="sketch-subtitle">さらに深く学ぶ</div>
+                </div>
+                <div class="sketch-body">
+                    <p class="sketch-description">
+                        アルゴリズミックアート、ジェネラティブアート、p5.jsなどの
+                        学習に役立つ書籍やWebリソースを集めました。
+                    </p>
+                    <div class="sketch-keywords">
+                        <span class="keyword">書籍</span>
+                        <span class="keyword">チュートリアル</span>
+                        <span class="keyword">リファレンス</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <footer>
+            <p>CCBT ひらめく道場 プログラミング入門ワークショップ</p>
+        </footer>
+    </div>
+</body>
+</html>

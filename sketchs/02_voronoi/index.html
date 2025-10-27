@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>STEP 2 近さで模様を分ける Voronoi</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+            background: linear-gradient(135deg, #2d1607 0%, #4e2a12 40%, #111827 100%);
+            color: #fff7ed;
+            min-height: 100vh;
+            padding: 32px 16px 48px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .page {
+            width: min(1180px, 100%);
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        header {
+            display: grid;
+            gap: 18px;
+            padding: 28px 32px 32px;
+            border-radius: 24px;
+            background: linear-gradient(160deg, rgba(251, 191, 36, 0.18), rgba(180, 83, 9, 0.26));
+            border: 1px solid rgba(251, 191, 36, 0.28);
+            box-shadow: 0 22px 40px rgba(51, 30, 6, 0.45);
+        }
+
+        .back-link {
+            justify-self: start;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(245, 158, 11, 0.2);
+            color: #fffbeb;
+            text-decoration: none;
+            font-size: 0.92rem;
+            transition: background 0.2s ease;
+        }
+
+        .back-link:hover,
+        .back-link:focus {
+            background: rgba(245, 158, 11, 0.35);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: clamp(2.1rem, 4vw, 2.8rem);
+            letter-spacing: 0.04em;
+        }
+
+        .lead {
+            margin: 0;
+            line-height: 1.8;
+            color: #fff7ed;
+            font-size: 1.05rem;
+        }
+
+        .key-points {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .key-points li {
+            background: rgba(30, 64, 175, 0.28);
+            border: 1px solid rgba(96, 165, 250, 0.26);
+            border-radius: 16px;
+            padding: 14px 18px;
+            line-height: 1.6;
+            color: #e0f2fe;
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .viewer {
+            background: rgba(17, 24, 39, 0.82);
+            border-radius: 24px;
+            border: 1px solid rgba(245, 158, 11, 0.24);
+            box-shadow: 0 24px 48px rgba(17, 24, 39, 0.52);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .viewer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            background: rgba(88, 28, 135, 0.18);
+            border-bottom: 1px solid rgba(192, 132, 252, 0.18);
+        }
+
+        .viewer-title {
+            margin: 0;
+            font-size: 1.2rem;
+            letter-spacing: 0.05em;
+            color: #fbbf24;
+        }
+
+        .control-bar {
+            display: inline-flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .button {
+            appearance: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            border: 1px solid rgba(253, 230, 138, 0.5);
+            background: rgba(245, 158, 11, 0.2);
+            color: #fffbeb;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        .button:hover,
+        .button:focus {
+            background: rgba(245, 158, 11, 0.34);
+            transform: translateY(-1px);
+            box-shadow: 0 12px 24px rgba(245, 158, 11, 0.25);
+        }
+
+        .button[disabled] {
+            cursor: not-allowed;
+            opacity: 0.6;
+            transform: none;
+            background: rgba(148, 163, 184, 0.18);
+            border-color: rgba(148, 163, 184, 0.26);
+            box-shadow: none;
+        }
+
+        .button[disabled]:hover {
+            transform: none;
+        }
+
+        .button-link[hidden] {
+            display: none;
+        }
+
+        .embed-shell {
+            position: relative;
+            padding-top: min(65vh, 640px);
+            background: radial-gradient(circle at 50% 25%, rgba(251, 191, 36, 0.16), rgba(17, 24, 39, 0.92));
+        }
+
+        iframe {
+            position: absolute;
+            inset: 0;
+            border: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .loading,
+        .fallback {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-content: center;
+            gap: 16px;
+            padding: 24px;
+            text-align: center;
+            background: radial-gradient(circle at 50% 50%, rgba(30, 41, 59, 0.65), rgba(17, 24, 39, 0.92));
+            color: #e0f2fe;
+        }
+
+        .loading[hidden],
+        .fallback[hidden] {
+            display: none;
+        }
+
+        .fallback a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 220px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            text-decoration: none;
+            background: #fbbf24;
+            color: #1f2937;
+            font-weight: 600;
+            transition: background 0.2s ease;
+        }
+
+        .fallback a:hover,
+        .fallback a:focus {
+            background: #f59e0b;
+        }
+
+        .fallback a[hidden] {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 24px 12px 36px;
+            }
+
+            header {
+                padding: 22px 22px 26px;
+                border-radius: 20px;
+            }
+
+            .viewer {
+                border-radius: 20px;
+            }
+
+            .viewer-header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: flex-start;
+            }
+
+            .control-bar {
+                width: 100%;
+            }
+
+            .button {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .embed-shell {
+                padding-top: min(70vh, 480px);
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <header>
+        <a class="back-link" href="/">← スケッチ一覧に戻る</a>
+        <h1>STEP 2 近さで模様を分ける Voronoi</h1>
+        <p class="lead">
+            ボロノイ図は「最も近い点で領域を区切る」シンプルなルールで、キリンの模様や細胞の輪郭を再現します。
+            点の配置や色の揺らぎを調整しながら、どんな分割が生まれるか観察しましょう。
+        </p>
+        <ul class="key-points">
+            <li>距離だけで領域が決まる幾何学パターンを体験</li>
+            <li>点の密度や配置を変えて模様の変化を比較</li>
+            <li>色の揺らぎで動物の質感や細胞感を演出</li>
+        </ul>
+    </header>
+    <main>
+        <section class="viewer">
+            <div class="viewer-header">
+                <h2 class="viewer-title">OpenProcessing Live Sketch</h2>
+                <div class="control-bar">
+                    <button class="button" disabled id="fullscreen-button" type="button">全画面表示</button>
+                    <a
+                            class="button button-link"
+                            hidden
+                            href="#"
+                            id="openprocessing-link"
+                            rel="noopener"
+                            target="_blank"
+                    >
+                        別タブで開く
+                    </a>
+                </div>
+            </div>
+            <div class="embed-shell" id="embed-shell">
+                <div class="loading" id="loading">読み込み中…</div>
+                <div class="fallback" hidden id="fallback">
+                    <div id="fallback-message">埋め込みを表示できませんでした。</div>
+                    <a hidden href="#" id="fallback-link" rel="noopener" target="_blank">OpenProcessing を開く</a>
+                </div>
+                <iframe
+                        allowfullscreen
+                        allowtransparency="true"
+                        hidden
+                        id="openprocessing-frame"
+                        loading="lazy"
+                        title="Voronoi on OpenProcessing"
+                ></iframe>
+            </div>
+        </section>
+    </main>
+</div>
+<script>
+    const OPENPROCESSING_URL = '';
+
+    const frame = document.getElementById('openprocessing-frame');
+    const loading = document.getElementById('loading');
+    const fallback = document.getElementById('fallback');
+    const fallbackMessage = document.getElementById('fallback-message');
+    const fallbackLink = document.getElementById('fallback-link');
+    const fullscreenButton = document.getElementById('fullscreen-button');
+    const embedShell = document.getElementById('embed-shell');
+    const openLink = document.getElementById('openprocessing-link');
+
+    const normalizedUrl = OPENPROCESSING_URL.replace(/\/$/, '');
+    const embedUrl = normalizedUrl ? `${normalizedUrl}/embed/` : '';
+
+    let fallbackTimer = null;
+
+    if (embedUrl) {
+        frame.src = embedUrl;
+        if (openLink) {
+            openLink.href = normalizedUrl;
+            openLink.hidden = false;
+        }
+        if (fallbackLink) {
+            fallbackLink.href = normalizedUrl;
+            fallbackLink.hidden = false;
+        }
+
+        fallbackTimer = window.setTimeout(() => {
+            if (frame.hidden) {
+                loading.hidden = true;
+                fallback.hidden = false;
+            }
+        }, 4500);
+
+        frame.addEventListener('load', () => {
+            window.clearTimeout(fallbackTimer);
+            frame.hidden = false;
+            loading.hidden = true;
+            fallback.hidden = true;
+            if (fullscreenButton) {
+                fullscreenButton.disabled = false;
+            }
+        });
+
+        frame.addEventListener('error', () => {
+            window.clearTimeout(fallbackTimer);
+            loading.hidden = true;
+            fallback.hidden = false;
+        });
+    } else {
+        loading.hidden = true;
+        if (fallback) {
+            fallback.hidden = false;
+        }
+        if (fallbackMessage) {
+            fallbackMessage.textContent = 'OpenProcessing の URL が未設定です。設定後に再読み込みしてください。';
+        }
+        if (fullscreenButton) {
+            fullscreenButton.disabled = true;
+        }
+    }
+
+    function requestFullscreen(element) {
+        if (!element) return Promise.reject(new Error('no element'));
+        if (element.requestFullscreen) {
+            return element.requestFullscreen();
+        }
+        if (element.webkitRequestFullscreen) {
+            return element.webkitRequestFullscreen();
+        }
+        if (element.msRequestFullscreen) {
+            return element.msRequestFullscreen();
+        }
+        return Promise.reject(new Error('Fullscreen API not supported'));
+    }
+
+    function exitFullscreen() {
+        if (document.exitFullscreen) {
+            return document.exitFullscreen();
+        }
+        if (document.webkitExitFullscreen) {
+            return document.webkitExitFullscreen();
+        }
+        if (document.msExitFullscreen) {
+            return document.msExitFullscreen();
+        }
+        return Promise.resolve();
+    }
+
+    function syncFullscreenButton() {
+        if (!fullscreenButton) return;
+        const active = document.fullscreenElement === embedShell;
+        fullscreenButton.textContent = active ? '全画面を終了' : '全画面表示';
+    }
+
+    if (fullscreenButton) {
+        fullscreenButton.addEventListener('click', () => {
+            if (!embedUrl) {
+                return;
+            }
+            const active = document.fullscreenElement === embedShell;
+            const action = active ? exitFullscreen() : requestFullscreen(embedShell);
+            Promise.resolve(action).catch((error) => {
+                console.warn('[voronoi] fullscreen failed', error);
+            });
+        });
+        document.addEventListener('fullscreenchange', syncFullscreenButton);
+        syncFullscreenButton();
+    }
+</script>
+</body>
+</html>

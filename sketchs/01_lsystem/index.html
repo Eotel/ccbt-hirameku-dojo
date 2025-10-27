@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>STEP 1 木を育てる L-System</title>
+    <script src="../common/utils.js"></script>
+    <script src="config.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+            background: linear-gradient(140deg, #032917 0%, #064d2b 40%, #0f172a 100%);
+            color: #f1f7f4;
+            min-height: 100vh;
+            padding: 32px 16px 48px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .page {
+            width: min(1180px, 100%);
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        header {
+            display: grid;
+            gap: 18px;
+            padding: 28px 32px 32px;
+            border-radius: 24px;
+            background: linear-gradient(160deg, rgba(34, 197, 94, 0.18), rgba(15, 118, 110, 0.26));
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(148, 239, 167, 0.25);
+            box-shadow: 0 22px 40px rgba(2, 44, 26, 0.35);
+        }
+
+        .back-link {
+            justify-self: start;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(15, 118, 110, 0.22);
+            color: #d1fae5;
+            text-decoration: none;
+            font-size: 0.92rem;
+            transition: background 0.2s ease;
+        }
+
+        .back-link:hover,
+        .back-link:focus {
+            background: rgba(16, 185, 129, 0.38);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: clamp(2.1rem, 4vw, 2.8rem);
+            letter-spacing: 0.04em;
+        }
+
+        .lead {
+            margin: 0;
+            line-height: 1.8;
+            color: #ecfdf5;
+            font-size: 1.05rem;
+        }
+
+        .key-points {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .key-points li {
+            background: rgba(12, 74, 110, 0.35);
+            border: 1px solid rgba(56, 189, 248, 0.24);
+            border-radius: 16px;
+            padding: 14px 18px;
+            line-height: 1.6;
+            color: #e0f2fe;
+        }
+
+        .symbol-legend {
+            padding: 18px 22px 20px;
+            border-radius: 18px;
+            background: rgba(13, 148, 136, 0.14);
+            border: 1px solid rgba(20, 184, 166, 0.28);
+            display: grid;
+            gap: 14px;
+        }
+
+        .symbol-legend h2 {
+            margin: 0;
+            font-size: 1rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #bbf7d0;
+        }
+
+        .symbol-legend dl {
+            margin: 0;
+            display: grid;
+            gap: 12px 18px;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        }
+
+        .symbol-legend dt {
+            margin: 0;
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: #fef3c7;
+        }
+
+        .symbol-legend dd {
+            margin: 4px 0 0;
+            line-height: 1.5;
+            color: #d1fae5;
+            font-size: 0.95rem;
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .preset-guide {
+            background: rgba(12, 74, 110, 0.35);
+            border: 1px solid rgba(56, 189, 248, 0.24);
+            border-radius: 20px;
+            padding: 22px 26px;
+            display: grid;
+            gap: 16px;
+            color: #dbeafe;
+        }
+
+        .preset-guide h2 {
+            margin: 0;
+            font-size: 1.3rem;
+            letter-spacing: 0.04em;
+            color: #bfdbfe;
+        }
+
+        .interaction-guide {
+            background: rgba(15, 118, 110, 0.24);
+            border: 1px solid rgba(59, 130, 246, 0.22);
+            border-radius: 20px;
+            padding: 24px 28px;
+            display: grid;
+            gap: 14px;
+            color: #dbeafe;
+        }
+
+        .interaction-guide h2 {
+            margin: 0;
+            font-size: 1.22rem;
+            letter-spacing: 0.05em;
+            color: #bae6fd;
+        }
+
+        .interaction-guide p {
+            margin: 0;
+            line-height: 1.7;
+            font-size: 0.96rem;
+        }
+
+        .interaction-guide ul {
+            margin: 0;
+            padding-left: 22px;
+            display: grid;
+            gap: 8px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .interaction-guide li {
+            color: #e0f2fe;
+        }
+
+        .interaction-guide code {
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(56, 189, 248, 0.24);
+            color: #fef3c7;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .preset-accordion {
+            display: grid;
+            gap: 8px;
+        }
+
+        .preset-item {
+            background: rgba(30, 64, 175, 0.18);
+            border: 1px solid rgba(59, 130, 246, 0.22);
+            border-radius: 14px;
+            overflow: hidden;
+            transition: background 0.2s ease;
+        }
+
+        .preset-item.active {
+            background: rgba(30, 64, 175, 0.28);
+        }
+
+        .preset-header {
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .preset-header:hover {
+            background: rgba(96, 165, 250, 0.12);
+        }
+
+        .preset-title {
+            margin: 0;
+            font-size: 1.02rem;
+            font-weight: 600;
+            color: #fbcfe8;
+            flex: 1;
+        }
+
+        .preset-toggle {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #93c5fd;
+            transition: transform 0.2s ease;
+        }
+
+        .preset-item.active .preset-toggle {
+            transform: rotate(180deg);
+        }
+
+        .preset-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .preset-item.active .preset-content {
+            max-height: 200px;
+        }
+
+        .preset-description {
+            padding: 0 18px 14px;
+            line-height: 1.6;
+            font-size: 0.94rem;
+            color: #e0f2fe;
+        }
+
+        .preset-rules {
+            padding: 0 18px 18px;
+            margin: 0;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: #bae6fd;
+            letter-spacing: 0.01em;
+        }
+
+        .preset-rules strong {
+            color: #facc15;
+            font-weight: 600;
+            margin-right: 6px;
+        }
+
+        .tip {
+            margin: 6px 0 0;
+            font-size: 0.9rem;
+            color: #a5f3fc;
+            letter-spacing: 0.03em;
+        }
+
+        .viewer {
+            background: rgba(2, 6, 23, 0.82);
+            border-radius: 24px;
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            box-shadow: 0 24px 48px rgba(2, 6, 23, 0.42);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .viewer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            background: rgba(30, 64, 175, 0.18);
+            border-bottom: 1px solid rgba(59, 130, 246, 0.16);
+        }
+
+        .viewer-title {
+            margin: 0;
+            font-size: 1.2rem;
+            letter-spacing: 0.05em;
+            color: #bfdbfe;
+        }
+
+        .control-bar {
+            display: inline-flex;
+            gap: 12px;
+        }
+
+        .button {
+            appearance: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            border: 1px solid rgba(191, 219, 254, 0.4);
+            background: rgba(96, 165, 250, 0.25);
+            color: #e0f2fe;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        .button:hover,
+        .button:focus {
+            background: rgba(96, 165, 250, 0.4);
+            transform: translateY(-1px);
+            box-shadow: 0 12px 24px rgba(96, 165, 250, 0.25);
+        }
+
+        .embed-shell {
+            position: relative;
+            padding-top: min(65vh, 640px);
+            background: radial-gradient(circle at 50% 30%, rgba(56, 189, 248, 0.18), rgba(15, 23, 42, 0.9));
+        }
+
+        iframe {
+            position: absolute;
+            inset: 0;
+            border: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .loading,
+        .fallback {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-content: center;
+            gap: 16px;
+            padding: 24px;
+            text-align: center;
+            background: radial-gradient(circle at 50% 50%, rgba(30, 41, 59, 0.65), rgba(2, 6, 23, 0.92));
+            color: #cbd5f5;
+        }
+
+        .loading[hidden],
+        .fallback[hidden] {
+            display: none;
+        }
+
+        .fallback a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 220px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            text-decoration: none;
+            background: #38bdf8;
+            color: #0b1120;
+            font-weight: 600;
+            transition: background 0.2s ease;
+        }
+
+        .fallback a:hover,
+        .fallback a:focus {
+            background: #0ea5e9;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 24px 12px 36px;
+            }
+
+            header {
+                padding: 22px 22px 26px;
+                border-radius: 20px;
+            }
+
+            .viewer {
+                border-radius: 20px;
+            }
+
+            .viewer-header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: flex-start;
+            }
+
+            .interaction-guide {
+                padding: 20px 22px;
+                border-radius: 18px;
+            }
+
+            .control-bar {
+                width: 100%;
+            }
+
+            .button {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .embed-shell {
+                padding-top: min(70vh, 480px);
+            }
+
+            .symbol-legend dl {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <header>
+        <a class="back-link" href="/">← スケッチ一覧に戻る</a>
+        <h1>STEP 1 木を育てる L-System</h1>
+        <p class="lead">
+            L-System（リンデンマイヤー・システム）は、文字列の書き換えを繰り返して成長を表現するアルゴリズムです。
+            規則と角度を少し変えるだけで、枝ぶりや季節の雰囲気が大きく変化します。
+        </p>
+        <ul class="key-points">
+            <li>再帰的な文字列書き換えで枝分かれを生成</li>
+            <li>角度・長さ・色を調整して季節感や樹形をデザイン</li>
+            <li>プリセットから木・雪・ドラゴンなど 8 パターンを切り替えて比較</li>
+            <li>同じルールでも世代数によって密度が変化することを観察</li>
+        </ul>
+        <section aria-label="L-System 記号の凡例" class="symbol-legend">
+            <h2>タートル命令の記号</h2>
+            <dl>
+                <div>
+                    <dt>F</dt>
+                    <dd>現在の向きに進み、線分を描く。ステップ長だけ前進。</dd>
+                </div>
+                <div>
+                    <dt>+</dt>
+                    <dd>時計回りに回転。GUI の角度（°）分だけ右へ向きを変える。</dd>
+                </div>
+                <div>
+                    <dt>-</dt>
+                    <dd>反時計回りに回転。同じ角度値だけ左に折り返す。</dd>
+                </div>
+                <div>
+                    <dt>[</dt>
+                    <dd>位置・向き・枝幅・ステップ長をスタックに保存し、新しい枝を開始。</dd>
+                </div>
+                <div>
+                    <dt>]</dt>
+                    <dd>スタックから状態を復帰。保存した地点に戻って次の分岐を描く。</dd>
+                </div>
+            </dl>
+        </section>
+        <section class="interaction-guide">
+            <h2>タートルのステップ再生</h2>
+            <p>命令列を 1 記号ずつ実行する「ステップモード」で、タートルの動きを追いながら成長の流れを観察できます。最後に描いた枝が少し明るくハイライトされ、ステータスパネルに進行度と速度が表示されます。</p>
+            <ul>
+                <li><code>T</code> … ステップモードの切り替え（オンにすると最初の状態から開始）</li>
+                <li><code>Space</code> … 再生 / 一時停止を切り替え</li>
+                <li><code>→</code> / <code>←</code> … 1 ステップ進む / 戻る（<code>Shift</code> 併用で 10 ステップ）</li>
+                <li><code>0</code> … 再生位置をリセットして最初に戻す</li>
+                <li>GUI の「Playback」フォルダで速度（記号/秒）の調整やボタン操作が可能</li>
+            </ul>
+        </section>
+    </header>
+    <main>
+        <section class="preset-guide">
+            <h2>プリセット紹介</h2>
+            <div class="preset-accordion" id="preset-accordion">
+                <!-- JavaScript で動的に生成 -->
+            </div>
+        </section>
+        <section class="viewer">
+            <div class="viewer-header">
+                <h2 class="viewer-title">OpenProcessing Live Sketch</h2>
+                <div class="control-bar">
+                    <button class="button" id="fullscreen-button" type="button">全画面表示</button>
+                    <a
+                            class="button"
+                            href="https://openprocessing.org/sketch/2768223"
+                            id="openprocessing-link"
+                            rel="noopener"
+                            target="_blank"
+                    >
+                        別タブで開く
+                    </a>
+                </div>
+            </div>
+            <div class="embed-shell" id="embed-shell">
+                <div class="loading" id="loading">読み込み中…</div>
+                <div class="fallback" hidden id="fallback">
+                    <div>埋め込みを表示できませんでした。</div>
+                    <a href="https://openprocessing.org/sketch/2768223" rel="noopener" target="_blank">OpenProcessing
+                        を開く</a>
+                </div>
+                <iframe
+                        allowfullscreen
+                        allowtransparency="true"
+                        hidden
+                        id="openprocessing-frame"
+                        loading="lazy"
+                        src="https://openprocessing.org/sketch/2768223/embed/"
+                        title="L-System on OpenProcessing"
+                ></iframe>
+            </div>
+        </section>
+    </main>
+</div>
+<script>
+    const frame = document.getElementById('openprocessing-frame');
+    const loading = document.getElementById('loading');
+    const fallback = document.getElementById('fallback');
+    const fullscreenButton = document.getElementById('fullscreen-button');
+    const embedShell = document.getElementById('embed-shell');
+
+    const fallbackTimer = window.setTimeout(() => {
+        if (frame.hidden) {
+            loading.hidden = true;
+            fallback.hidden = false;
+        }
+    }, 4500);
+
+    frame.addEventListener('load', () => {
+        window.clearTimeout(fallbackTimer);
+        frame.hidden = false;
+        loading.hidden = true;
+        fallback.hidden = true;
+    });
+
+    frame.addEventListener('error', () => {
+        window.clearTimeout(fallbackTimer);
+        loading.hidden = true;
+        fallback.hidden = false;
+    });
+
+    function requestFullscreen(element) {
+        if (!element) return Promise.reject(new Error('no element'));
+        if (element.requestFullscreen) {
+            return element.requestFullscreen();
+        }
+        if (element.webkitRequestFullscreen) {
+            return element.webkitRequestFullscreen();
+        }
+        if (element.msRequestFullscreen) {
+            return element.msRequestFullscreen();
+        }
+        return Promise.reject(new Error('Fullscreen API not supported'));
+    }
+
+    function exitFullscreen() {
+        if (document.exitFullscreen) {
+            return document.exitFullscreen();
+        }
+        if (document.webkitExitFullscreen) {
+            return document.webkitExitFullscreen();
+        }
+        if (document.msExitFullscreen) {
+            return document.msExitFullscreen();
+        }
+        return Promise.resolve();
+    }
+
+    function syncFullscreenButton() {
+        if (!fullscreenButton) return;
+        const active = document.fullscreenElement === embedShell;
+        fullscreenButton.textContent = active ? '全画面を終了' : '全画面表示';
+    }
+
+    if (fullscreenButton) {
+        fullscreenButton.addEventListener('click', () => {
+            const active = document.fullscreenElement === embedShell;
+            const action = active ? exitFullscreen() : requestFullscreen(embedShell);
+            Promise.resolve(action).catch((error) => {
+                console.warn('[lsystem] fullscreen failed', error);
+            });
+        });
+        document.addEventListener('fullscreenchange', syncFullscreenButton);
+        syncFullscreenButton();
+    }
+
+    // プリセットアコーディオンの生成
+    window.addEventListener('DOMContentLoaded', function() {
+        const accordion = document.getElementById('preset-accordion');
+        if (!accordion || !window.LSystemConfig) {
+            console.warn('Accordion or LSystemConfig not found');
+            return;
+        }
+
+        const presets = window.LSystemConfig.PRESETS;
+        const fragment = document.createDocumentFragment();
+
+        Object.entries(presets).forEach(([key, preset], index) => {
+            const item = document.createElement('div');
+            item.className = 'preset-item';
+            if (index === 0) item.classList.add('active');
+
+            const header = document.createElement('div');
+            header.className = 'preset-header';
+            
+            const title = document.createElement('h3');
+            title.className = 'preset-title';
+            title.textContent = preset.label;
+            
+            const toggle = document.createElement('div');
+            toggle.className = 'preset-toggle';
+            toggle.innerHTML = '▼';
+            
+            header.appendChild(title);
+            header.appendChild(toggle);
+            
+            const content = document.createElement('div');
+            content.className = 'preset-content';
+            
+            const description = document.createElement('p');
+            description.className = 'preset-description';
+            description.textContent = preset.description;
+
+            content.appendChild(description);
+
+            const rules = preset.settings?.rules || {};
+            const ruleLines = [];
+            for (const [symbol, expansion] of Object.entries(rules)) {
+                if (typeof expansion === 'string') {
+                    ruleLines.push(`${symbol} → ${expansion}`);
+                } else if (Array.isArray(expansion)) {
+                    const variants = expansion
+                        .map((entry) => {
+                            if (typeof entry === 'string') {
+                                return entry;
+                            }
+                            if (entry && typeof entry.value === 'string') {
+                                if (typeof entry.weight === 'number') {
+                                    return `${entry.value}（重み ${entry.weight}）`;
+                                }
+                                return entry.value;
+                            }
+                            return null;
+                        })
+                        .filter(Boolean);
+                    if (variants.length > 0) {
+                        ruleLines.push(`${symbol} → ${variants.join(' ／ ')}`);
+                    }
+                }
+            }
+
+            if (ruleLines.length > 0) {
+                const ruleParagraph = document.createElement('p');
+                ruleParagraph.className = 'preset-rules';
+                ruleParagraph.innerHTML = `<strong>ルール文字列</strong>: ${ruleLines.join(' ｜ ')}`;
+                content.appendChild(ruleParagraph);
+            }
+            item.appendChild(header);
+            item.appendChild(content);
+            
+            header.addEventListener('click', () => {
+                const wasActive = item.classList.contains('active');
+                // 他のアイテムを閉じる
+                accordion.querySelectorAll('.preset-item').forEach(i => {
+                    i.classList.remove('active');
+                });
+                // クリックされたアイテムをトグル
+                if (!wasActive) {
+                    item.classList.add('active');
+                }
+            });
+            
+            fragment.appendChild(item);
+        });
+
+        accordion.appendChild(fragment);
+    });
+</script>
+</body>
+</html>

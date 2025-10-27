@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ボロノイ図 - 自然界の領域分割</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .description {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        .value-display {
+            display: inline-block;
+            margin-left: 10px;
+            color: #007bff;
+            font-weight: bold;
+        }
+        #canvas-container {
+            text-align: center;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .info {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e7f3ff;
+            border-left: 4px solid #007bff;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🦒 ボロノイ図 - 自然界の領域分割</h1>
+        
+        <div class="description">
+            <h2>最も近い点で分ける不思議なパターン</h2>
+            <p>
+                ボロノイ図は、平面上にいくつかの点があるとき、「どの点に最も近いか」で領域を分割した図形です。
+                自然界では、<strong>キリンの模様</strong>、<strong>細胞の形</strong>、<strong>蜂の巣</strong>、
+                <strong>トンボの羽</strong>など、様々な場所でこのパターンが見られます。
+            </p>
+            <p>
+                キリンの模様は、胎児のときに散らばったメラニン分泌細胞が、均一な速度で成長することで
+                自然にボロノイ図のパターンになります。このパターンは、限られた空間を効率的に使うのに
+                最適な形なのです。
+            </p>
+        </div>
+
+        <div class="controls">
+            <h3>インタラクティブに操作しよう</h3>
+            
+            <div class="control-group">
+                <button id="random-btn">ランダムに点を配置</button>
+                <button id="clear-btn">クリア</button>
+                <small>キャンバスをクリックして点を追加することもできます</small>
+            </div>
+
+            <div class="control-group">
+                <label>
+                    点の数: <span class="value-display" id="point-count">20</span>
+                </label>
+                <input type="range" id="point-slider" min="5" max="50" value="20" step="1">
+            </div>
+
+            <div class="control-group">
+                <label>
+                    色のモード:
+                    <select id="color-mode">
+                        <option value="distance">中心からの距離</option>
+                        <option value="random">ランダム</option>
+                        <option value="pastel">パステル</option>
+                        <option value="giraffe">キリン風</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="control-group">
+                <label>
+                    <input type="checkbox" id="show-points" checked>
+                    点を表示する
+                </label>
+            </div>
+
+            <div class="info">
+                💡 <strong>ヒント:</strong> キャンバスをクリックして自分で点を追加してみましょう！
+            </div>
+        </div>
+
+        <div id="canvas-container"></div>
+    </div>
+
+    <script>
+        let points = [];
+        let colorMode = 'distance';
+        let showPoints = true;
+        
+        function setup() {
+            let canvas = createCanvas(800, 800);
+            canvas.parent('canvas-container');
+            
+            // 初期の点を配置
+            generateRandomPoints(20);
+            
+            // イベントリスナー
+            document.getElementById('random-btn').addEventListener('click', () => {
+                const count = parseInt(document.getElementById('point-slider').value);
+                generateRandomPoints(count);
+                redraw();
+            });
+            
+            document.getElementById('clear-btn').addEventListener('click', () => {
+                points = [];
+                redraw();
+            });
+            
+            document.getElementById('point-slider').addEventListener('input', (e) => {
+                const count = parseInt(e.target.value);
+                document.getElementById('point-count').textContent = count;
+            });
+            
+            document.getElementById('color-mode').addEventListener('change', (e) => {
+                colorMode = e.target.value;
+                redraw();
+            });
+            
+            document.getElementById('show-points').addEventListener('change', (e) => {
+                showPoints = e.target.checked;
+                redraw();
+            });
+            
+            noLoop();
+        }
+        
+        function generateRandomPoints(count) {
+            points = [];
+            for (let i = 0; i < count; i++) {
+                points.push({
+                    x: random(50, width - 50),
+                    y: random(50, height - 50),
+                    color: color(random(255), random(255), random(255))
+                });
+            }
+        }
+        
+        function mousePressed() {
+            if (mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height) {
+                points.push({
+                    x: mouseX,
+                    y: mouseY,
+                    color: color(random(255), random(255), random(255))
+                });
+                redraw();
+            }
+        }
+        
+        function draw() {
+            background(255);
+            
+            if (points.length === 0) {
+                fill(150);
+                textAlign(CENTER, CENTER);
+                textSize(20);
+                text('「ランダムに点を配置」をクリックするか\nキャンバスをクリックして点を追加してください', width/2, height/2);
+                return;
+            }
+            
+            // ボロノイ図を描画（各ピクセルで最も近い点を探す）
+            loadPixels();
+            
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const maxDist = dist(0, 0, centerX, centerY);
+            
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    let minDist = Infinity;
+                    let closestPoint = null;
+                    
+                    // 最も近い点を見つける
+                    for (let point of points) {
+                        let d = dist(x, y, point.x, point.y);
+                        if (d < minDist) {
+                            minDist = d;
+                            closestPoint = point;
+                        }
+                    }
+                    
+                    // 色を決定
+                    let fillColor;
+                    switch(colorMode) {
+                        case 'distance':
+                            const distFromCenter = dist(x, y, centerX, centerY);
+                            const hue = map(distFromCenter, 0, maxDist, 180, 280);
+                            colorMode(HSB, 360, 100, 100);
+                            fillColor = color(hue, 60, 95);
+                            colorMode(RGB, 255);
+                            break;
+                        case 'random':
+                            fillColor = closestPoint.color;
+                            break;
+                        case 'pastel':
+                            const idx = points.indexOf(closestPoint);
+                            const pastelHue = (idx * 137.5) % 360;
+                            colorMode(HSB, 360, 100, 100);
+                            fillColor = color(pastelHue, 40, 95);
+                            colorMode(RGB, 255);
+                            break;
+                        case 'giraffe':
+                            const distToPoint = dist(x, y, closestPoint.x, closestPoint.y);
+                            const brown = map(distToPoint, 0, 100, 20, 60);
+                            fillColor = color(brown + random(-10, 10), brown - 10, 10);
+                            break;
+                    }
+                    
+                    set(x, y, fillColor);
+                }
+            }
+            
+            updatePixels();
+            
+            // セルの境界線を描く（エッジ検出的に）
+            stroke(100, 100, 100, 100);
+            strokeWeight(1);
+            for (let x = 0; x < width - 1; x++) {
+                for (let y = 0; y < height - 1; y++) {
+                    let minDist1 = Infinity;
+                    let closestPoint1 = null;
+                    let minDist2 = Infinity;
+                    let closestPoint2 = null;
+                    
+                    for (let point of points) {
+                        let d1 = dist(x, y, point.x, point.y);
+                        let d2 = dist(x + 1, y + 1, point.x, point.y);
+                        
+                        if (d1 < minDist1) {
+                            minDist1 = d1;
+                            closestPoint1 = point;
+                        }
+                        if (d2 < minDist2) {
+                            minDist2 = d2;
+                            closestPoint2 = point;
+                        }
+                    }
+                    
+                    if (closestPoint1 !== closestPoint2) {
+                        point(x, y);
+                    }
+                }
+            }
+            
+            // 点を描画
+            if (showPoints) {
+                for (let point of points) {
+                    fill(50);
+                    noStroke();
+                    circle(point.x, point.y, 8);
+                    fill(255);
+                    circle(point.x, point.y, 4);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+

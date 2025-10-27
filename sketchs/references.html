@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>参考文献・リソース - CCBT ひらめく道場</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+            background: linear-gradient(180deg, #f5f8ff 0%, #fafafa 50%, #fff) fixed;
+            color: #1f2933;
+        }
+
+        header {
+            padding: 60px 24px 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2.4rem;
+            letter-spacing: 0.05em;
+        }
+
+        header p {
+            max-width: 720px;
+            margin: 16px auto 0;
+            line-height: 1.7;
+            color: #4b5563;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 16px;
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.18s ease;
+        }
+
+        .back-link:hover {
+            color: #1d4ed8;
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px 80px;
+        }
+
+        .filter-section {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 32px;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+        }
+
+        .filter-section h2 {
+            margin: 0 0 16px;
+            font-size: 1.2rem;
+        }
+
+        .filter-group {
+            margin-bottom: 20px;
+        }
+
+        .filter-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #374151;
+        }
+
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #d1d5db;
+            background: white;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            font-family: inherit;
+        }
+
+        .filter-btn:hover {
+            border-color: #9ca3af;
+        }
+
+        .filter-btn.active {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: white;
+        }
+
+        .tag-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tag-filter {
+            padding: 6px 14px;
+            border: 2px solid #d1d5db;
+            background: white;
+            border-radius: 16px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            font-family: inherit;
+        }
+
+        .tag-filter:hover {
+            border-color: #9ca3af;
+        }
+
+        .tag-filter.active {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+        }
+
+        .results-info {
+            margin: 24px 0 16px;
+            color: #6b7280;
+            font-size: 0.95rem;
+        }
+
+        .resources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .resource-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .resource-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
+        }
+
+        .resource-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            gap: 12px;
+        }
+
+        .resource-meta {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .badge.category-book {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge.category-website {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge.category-interactive {
+            background: #fce7f3;
+            color: #9f1239;
+        }
+
+        .badge.category-paper {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge.lang-ja {
+            background: #f3e8ff;
+            color: #6b21a8;
+        }
+
+        .badge.lang-en {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        .badge.free {
+            background: #10b981;
+            color: white;
+        }
+
+        .resource-title {
+            margin: 0 0 8px;
+            font-size: 1.15rem;
+            font-weight: 600;
+        }
+
+        .resource-author {
+            margin: 0 0 4px;
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        .resource-year {
+            margin: 0 0 12px;
+            font-size: 0.85rem;
+            color: #9ca3af;
+        }
+
+        .resource-description {
+            margin: 0 0 16px;
+            line-height: 1.6;
+            font-size: 0.95rem;
+            color: #4b5563;
+            flex-grow: 1;
+        }
+
+        .resource-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        .resource-tag {
+            padding: 4px 10px;
+            background: #f3f4f6;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        .resource-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-align: center;
+            transition: background 0.18s ease;
+        }
+
+        .resource-link:hover {
+            background: #1d4ed8;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+        }
+
+        .no-results h3 {
+            font-size: 1.3rem;
+            margin: 0 0 8px;
+        }
+
+        .no-results p {
+            margin: 0;
+            font-size: 0.95rem;
+        }
+
+        @media (max-width: 620px) {
+            header {
+                padding-top: 48px;
+            }
+
+            header h1 {
+                font-size: 1.9rem;
+            }
+
+            .filter-section {
+                padding: 20px;
+            }
+
+            .resources-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>参考文献・リソース</h1>
+    <p>
+        アルゴリズミックアート、ジェネラティブアート、p5.js などの学習に役立つ書籍やWebリソースをまとめました。<br>
+        フィルタを使って、興味のある分野や言語で絞り込むことができます。
+    </p>
+    <a class="back-link" href="../index.html">← ワークショップトップへ戻る</a>
+</header>
+<main>
+    <section class="filter-section">
+        <h2>フィルタ</h2>
+
+        <div class="filter-group">
+            <label>言語</label>
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="language" data-value="all">すべて</button>
+                <button class="filter-btn" data-filter="language" data-value="ja">日本語</button>
+                <button class="filter-btn" data-filter="language" data-value="en">English</button>
+            </div>
+        </div>
+
+        <div class="filter-group">
+            <label>カテゴリ</label>
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="category" data-value="all">すべて</button>
+                <button class="filter-btn" data-filter="category" data-value="book">書籍</button>
+                <button class="filter-btn" data-filter="category" data-value="website">Webサイト</button>
+                <button class="filter-btn" data-filter="category" data-value="interactive">インタラクティブ</button>
+                <button class="filter-btn" data-filter="category" data-value="paper">論文・資料</button>
+            </div>
+        </div>
+
+        <div class="filter-group">
+            <label>無料リソース</label>
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="free" data-value="all">すべて</button>
+                <button class="filter-btn" data-filter="free" data-value="true">無料のみ</button>
+            </div>
+        </div>
+
+        <div class="filter-group">
+            <label>タグ（複数選択可）</label>
+            <div class="tag-filters">
+                <button class="tag-filter" data-tag="p5js">p5.js</button>
+                <button class="tag-filter" data-tag="processing">Processing</button>
+                <button class="tag-filter" data-tag="generative-art">ジェネラティブアート</button>
+                <button class="tag-filter" data-tag="algorithmic-art">アルゴリズミックアート</button>
+                <button class="tag-filter" data-tag="fractal-art">フラクタルアート</button>
+                <button class="tag-filter" data-tag="l-system">L-System</button>
+                <button class="tag-filter" data-tag="tutorial">チュートリアル</button>
+                <button class="tag-filter" data-tag="reference">リファレンス</button>
+                <button class="tag-filter" data-tag="math">数学</button>
+            </div>
+        </div>
+    </section>
+
+    <div class="results-info">
+        <span id="results-count">0</span> 件のリソース
+    </div>
+
+    <div class="resources-grid" id="resources-container"></div>
+
+    <div class="no-results" id="no-results" style="display: none;">
+        <h3>該当するリソースが見つかりませんでした</h3>
+        <p>フィルタ条件を変更してみてください</p>
+    </div>
+</main>
+
+<script>
+    // リソースデータ
+    const resources = [
+        // ユーザー提供リソース
+        {
+            title: "Shells",
+            author: "Kæsve",
+            year: 2024,
+            language: "en",
+            category: "interactive",
+            tags: ["algorithmic-art", "fractal-art"],
+            url: "https://kaesve.nl/projects/shells/#/shells",
+            description: "インタラクティブな貝殻模様生成ツール。セルオートマトンを使ってリアルタイムで貝殻のパターンを生成できます。",
+            free: true
+        },
+        {
+            title: "The Algorithmic Beauty of Plants",
+            author: "Przemyslaw Prusinkiewicz, Aristid Lindenmayer",
+            year: 1990,
+            language: "en",
+            category: "paper",
+            tags: ["l-system", "fractal-art", "algorithmic-art"],
+            url: "https://algorithmicbotany.org/papers/#abop",
+            description: "L-Systemを使った植物のアルゴリズム的モデリングに関する古典的名著。オンラインで無料公開されています。",
+            free: true
+        },
+        {
+            title: "植物のアルゴリズム的美しさ",
+            author: "Przemyslaw Prusinkiewicz, Aristid Lindenmayer",
+            year: 1990,
+            language: "ja",
+            category: "book",
+            tags: ["l-system", "fractal-art", "algorithmic-art"],
+            url: "https://www.amazon.co.jp/dp/4431708138",
+            description: "上記「The Algorithmic Beauty of Plants」の日本語翻訳版。L-Systemによる植物形態の数理モデルを詳しく解説。",
+            free: false
+        },
+
+        // p5.js 関連書籍
+        {
+            title: "p5.jsで学ぶJavaScript入門",
+            author: "青木 樂, 國見 幸加, 田中 賢一郎",
+            year: 2024,
+            language: "ja",
+            category: "book",
+            tags: ["p5js", "tutorial"],
+            url: "https://nextpublishing.jp/book/17734.html",
+            description: "p5.jsを通してJavaScriptプログラミングの基礎から学べる入門書。初心者にも分かりやすい構成。",
+            free: false
+        },
+        {
+            title: "p5.jsプログラミングガイド 改訂版",
+            author: "松田 晃一",
+            year: 2024,
+            language: "ja",
+            category: "book",
+            tags: ["p5js", "reference"],
+            url: "https://www.cutt.co.jp/book/978-4-87783-510-1.html",
+            description: "p5.jsの包括的なリファレンスガイド。ml5.jsやスマートフォン対応も追加された改訂版。",
+            free: false
+        },
+        {
+            title: "p5.js公式サイト",
+            author: "Processing Foundation",
+            year: 2025,
+            language: "en",
+            category: "website",
+            tags: ["p5js", "reference", "tutorial"],
+            url: "https://p5js.org/",
+            description: "p5.jsの公式サイト。リファレンス、チュートリアル、サンプルが充実しています。",
+            free: true
+        },
+        {
+            title: "The Coding Train",
+            author: "Dan Shiffman",
+            year: 2025,
+            language: "en",
+            category: "website",
+            tags: ["p5js", "processing", "tutorial", "generative-art"],
+            url: "https://thecodingtrain.com/",
+            description: "Dan Shiffmanによる楽しいプログラミング動画チュートリアル。p5.jsとProcessingの豊富なコンテンツがあります。",
+            free: true
+        },
+        {
+            title: "ドットインストール p5.js入門",
+            author: "ドットインストール",
+            year: 2024,
+            language: "ja",
+            category: "website",
+            tags: ["p5js", "tutorial"],
+            url: "https://dotinstall.com/lessons/basic_p5js",
+            description: "全14回の動画でp5.jsの基礎を学べる日本語チュートリアル。",
+            free: false
+        },
+        {
+            title: "Processing Fan: p5.jsでProcessingを始めよう",
+            author: "Processing Fan",
+            year: 2024,
+            language: "ja",
+            category: "website",
+            tags: ["p5js", "processing", "tutorial"],
+            url: "https://processing-fan.firebaseapp.com/tutorial/p5/index.html",
+            description: "p5.jsでProcessingを学ぶための日本語チュートリアル。図形描画から入力処理まで網羅。",
+            free: true
+        },
+
+        // ジェネラティブアート書籍
+        {
+            title: "Generative Art: A Practical Guide Using Processing",
+            author: "Matt Pearson",
+            year: 2011,
+            language: "en",
+            category: "book",
+            tags: ["processing", "generative-art", "algorithmic-art"],
+            url: "https://www.manning.com/books/generative-art",
+            description: "Processingを使ったジェネラティブアートの実践的ガイド。理論から実装まで丁寧に解説された定番書。",
+            free: false
+        },
+        {
+            title: "ジェネラティブ・アート―Processingによる実践ガイド",
+            author: "マット・ピアソン（巴山 竜来 訳）",
+            year: 2014,
+            language: "ja",
+            category: "book",
+            tags: ["processing", "generative-art", "algorithmic-art"],
+            url: "https://www.amazon.co.jp/dp/4861009634",
+            description: "上記「Generative Art」の日本語翻訳版。Processingでジェネラティブアートを作る方法を実践的に学べます。",
+            free: false
+        },
+        {
+            title: "数学から創るジェネラティブアート",
+            author: "巴山 竜来",
+            year: 2019,
+            language: "ja",
+            category: "book",
+            tags: ["generative-art", "math", "p5js"],
+            url: "https://gihyo.jp/book/2019/978-4-297-10463-4",
+            description: "数学的アプローチでジェネラティブアートを学ぶ。数式の美しさをビジュアルで体験できる一冊。",
+            free: false
+        },
+        {
+            title: "The Nature of Code",
+            author: "Dan Shiffman",
+            year: 2024,
+            language: "en",
+            category: "book",
+            tags: ["p5js", "processing", "generative-art", "algorithmic-art"],
+            url: "https://natureofcode.com/",
+            description: "自然現象をシミュレートするアルゴリズムを学ぶ名著。2024年に第2版が公開され、オンラインで無料で読めます。",
+            free: true
+        },
+        {
+            title: "Generative Design",
+            author: "Benedikt Groß, Hartmut Bohnacker, Julia Laub, Claudius Lazzeroni",
+            year: 2018,
+            language: "en",
+            category: "book",
+            tags: ["processing", "p5js", "generative-art"],
+            url: "http://www.generative-gestaltung.de/2/",
+            description: "ジェネラティブデザインの包括的ガイド。ProcessingとP5.jsのコード例が豊富。Webサイトでコードが公開されています。",
+            free: false
+        },
+        {
+            title: "Code as Creative Medium",
+            author: "Golan Levin, Tega Brain",
+            year: 2021,
+            language: "en",
+            category: "book",
+            tags: ["generative-art", "algorithmic-art", "tutorial"],
+            url: "https://mitpress.mit.edu/9780262542043/code-as-creative-medium/",
+            description: "コードを創造的な表現手段として使うための実践的な教科書。教育者にも学習者にも有用。",
+            free: false
+        },
+        {
+            title: "Coding Art",
+            author: "Yu Zhang, Mathieu Blanchette",
+            year: 2021,
+            language: "en",
+            category: "book",
+            tags: ["p5js", "generative-art", "tutorial"],
+            url: "https://www.apress.com/gp/book/9781484271636",
+            description: "デザイナーやデジタルアーティスト向けのコーディング入門書。p5.jsを使って視覚的な作品を作る方法を学べます。",
+            free: false
+        },
+
+        // Web リソース・コミュニティ
+        {
+            title: "OpenProcessing",
+            author: "OpenProcessing Community",
+            year: 2025,
+            language: "en",
+            category: "website",
+            tags: ["p5js", "processing", "generative-art"],
+            url: "https://openprocessing.org/",
+            description: "ProcessingとP5.jsのスケッチを共有・探索できるコミュニティプラットフォーム。膨大な作品から学べます。",
+            free: true
+        },
+        {
+            title: "awesome-generative-books",
+            author: "Chris Ried",
+            year: 2024,
+            language: "en",
+            category: "website",
+            tags: ["generative-art", "reference"],
+            url: "https://github.com/cdr6934/awesome-generative-books",
+            description: "ジェネラティブアートに関する書籍をまとめたGitHubリポジトリ。カテゴリ別に整理されています。",
+            free: true
+        },
+        {
+            title: "Algorithmic Botany",
+            author: "Biological Modeling and Visualization group",
+            year: 2024,
+            language: "en",
+            category: "website",
+            tags: ["l-system", "algorithmic-art", "fractal-art"],
+            url: "https://algorithmicbotany.org/",
+            description: "L-Systemと植物モデリングに関する論文、ソフトウェア、リソースが集約されたサイト。",
+            free: true
+        },
+        {
+            title: "Creative Coding Notes",
+            author: "Tero Parviainen",
+            year: 2024,
+            language: "en",
+            category: "website",
+            tags: ["generative-art", "algorithmic-art", "tutorial"],
+            url: "https://teropa.info/",
+            description: "ジェネラティブアートとクリエイティブコーディングの探求記録。詳細な技術解説とビジュアル例が充実。",
+            free: true
+        },
+        {
+            title: "Tyler Hobbs",
+            author: "Tyler Hobbs",
+            year: 2024,
+            language: "en",
+            category: "website",
+            tags: ["generative-art", "algorithmic-art"],
+            url: "https://tylerxhobbs.com/",
+            description: "著名なジェネラティブアーティストTyler Hobbsのサイト。技術解説とアート論、Flow Fieldsなどの技法を詳しく解説。",
+            free: true
+        },
+
+        // フラクタル関連
+        {
+            title: "Fractal Foundation",
+            author: "Fractal Foundation",
+            year: 2024,
+            language: "en",
+            category: "website",
+            tags: ["fractal-art", "math", "tutorial"],
+            url: "https://fractalfoundation.org/",
+            description: "フラクタルの教育リソースが充実した財団のサイト。フラクタル幾何学の基礎から応用まで学べます。",
+            free: true
+        },
+        {
+            title: "Fractal Art Manifesto",
+            author: "Kerry Mitchell",
+            year: 1999,
+            language: "en",
+            category: "website",
+            tags: ["fractal-art"],
+            url: "https://www.kerrymitchellart.com/articles/manifesto/fa-manifesto.html",
+            description: "フラクタルアートの定義、歴史、技法について詳しく解説したマニフェスト。",
+            free: true
+        },
+
+        // 呟きProcessing
+        {
+            title: "つぶやきProcessingポータル",
+            author: "つぶやきProcessingコミュニティ",
+            year: 2024,
+            language: "ja",
+            category: "website",
+            tags: ["processing", "p5js", "generative-art"],
+            url: "https://tweetprocessing.projectroom.jp/",
+            description: "280文字以内のProcessingコードで作品を共有するコミュニティのポータルサイト。短いコードで驚くべき表現を学べます。",
+            free: true
+        },
+
+        // フラクタル・アルゴリズム説明（日本語）
+        {
+            title: "フラクタル - Wikipedia",
+            author: "Wikipedia",
+            year: 2025,
+            language: "ja",
+            category: "website",
+            tags: ["fractal-art", "math", "reference"],
+            url: "https://ja.wikipedia.org/wiki/フラクタル",
+            description: "フラクタルの基礎概念、歴史、様々な種類のフラクタル図形について体系的に解説。",
+            free: true
+        },
+        {
+            title: "コッホ曲線 - Wikipedia",
+            author: "Wikipedia",
+            year: 2025,
+            language: "ja",
+            category: "website",
+            tags: ["fractal-art", "math", "reference"],
+            url: "https://ja.wikipedia.org/wiki/コッホ曲線",
+            description: "雪の結晶のようなフラクタル曲線。直線を3等分して正三角形を作る単純なルールから無限の複雑さが生まれます。",
+            free: true
+        },
+        {
+            title: "シェルピンスキーのギャスケット - Wikipedia",
+            author: "Wikipedia",
+            year: 2025,
+            language: "ja",
+            category: "website",
+            tags: ["fractal-art", "math", "reference"],
+            url: "https://ja.wikipedia.org/wiki/シェルピンスキーのギャスケット",
+            description: "三角形を再帰的に分割して作られる自己相似なフラクタル図形。約1.58次元の幾何学的性質を持ちます。",
+            free: true
+        },
+        {
+            title: "ドラゴン曲線 - Wikipedia",
+            author: "Wikipedia",
+            year: 2025,
+            language: "ja",
+            category: "website",
+            tags: ["fractal-art", "math", "reference"],
+            url: "https://ja.wikipedia.org/wiki/ドラゴン曲線",
+            description: "紙を折って展開すると現れるフラクタル曲線。映画『ジュラシック・パーク』でも登場した美しい自己相似図形。",
+            free: true
+        },
+        {
+            title: "Dragon Curve - Wikipedia",
+            author: "Wikipedia",
+            year: 2025,
+            language: "en",
+            category: "website",
+            tags: ["fractal-art", "math", "reference"],
+            url: "https://en.wikipedia.org/wiki/Dragon_curve",
+            description: "Detailed explanation of the dragon curve fractal, including its history, mathematical properties, and construction methods.",
+            free: true
+        }
+    ];
+
+    // フィルタ状態
+    const filters = {
+        language: 'all',
+        category: 'all',
+        free: 'all',
+        tags: new Set()
+    };
+
+    // フィルタリング関数
+    function filterResources() {
+        const filtered = resources.filter(resource => {
+            // 言語フィルタ
+            if (filters.language !== 'all' && resource.language !== filters.language) {
+                return false;
+            }
+
+            // カテゴリフィルタ
+            if (filters.category !== 'all' && resource.category !== filters.category) {
+                return false;
+            }
+
+            // 無料フィルタ
+            if (filters.free === 'true' && !resource.free) {
+                return false;
+            }
+
+            // タグフィルタ（選択されたタグがすべて含まれる必要がある）
+            if (filters.tags.size > 0) {
+                for (const tag of filters.tags) {
+                    if (!resource.tags.includes(tag)) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        });
+
+        renderResources(filtered);
+    }
+
+    // リソース表示関数
+    function renderResources(resourcesList) {
+        const container = document.getElementById('resources-container');
+        const noResults = document.getElementById('no-results');
+        const resultsCount = document.getElementById('results-count');
+
+        resultsCount.textContent = resourcesList.length;
+
+        if (resourcesList.length === 0) {
+            container.style.display = 'none';
+            noResults.style.display = 'block';
+            return;
+        }
+
+        container.style.display = 'grid';
+        noResults.style.display = 'none';
+
+        container.innerHTML = resourcesList.map(resource => {
+            const categoryClass = `category-${resource.category}`;
+            const langClass = `lang-${resource.language}`;
+            const categoryLabel = {
+                book: '書籍',
+                website: 'Web',
+                interactive: 'インタラクティブ',
+                paper: '論文'
+            }[resource.category];
+
+            const langLabel = resource.language === 'ja' ? '日本語' : 'English';
+
+            return `
+                <div class="resource-card">
+                    <div class="resource-header">
+                        <div class="resource-meta">
+                            <span class="badge ${categoryClass}">${categoryLabel}</span>
+                            <span class="badge ${langClass}">${langLabel}</span>
+                            ${resource.free ? '<span class="badge free">無料</span>' : ''}
+                        </div>
+                    </div>
+                    <h3 class="resource-title">${resource.title}</h3>
+                    <p class="resource-author">${resource.author}</p>
+                    <p class="resource-year">${resource.year}</p>
+                    <p class="resource-description">${resource.description}</p>
+                    <div class="resource-tags">
+                        ${resource.tags.map(tag => `<span class="resource-tag">${tag}</span>`).join('')}
+                    </div>
+                    <a class="resource-link" href="${resource.url}" target="_blank" rel="noopener noreferrer">
+                        リンクを開く →
+                    </a>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // フィルタボタンのイベント設定
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const filterType = btn.dataset.filter;
+            const value = btn.dataset.value;
+
+            // 同じグループ内の他のボタンを非アクティブに
+            document.querySelectorAll(`[data-filter="${filterType}"]`).forEach(b => {
+                b.classList.remove('active');
+            });
+
+            btn.classList.add('active');
+            filters[filterType] = value;
+            filterResources();
+        });
+    });
+
+    // タグフィルタのイベント設定
+    document.querySelectorAll('.tag-filter').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tag = btn.dataset.tag;
+
+            if (filters.tags.has(tag)) {
+                filters.tags.delete(tag);
+                btn.classList.remove('active');
+            } else {
+                filters.tags.add(tag);
+                btn.classList.add('active');
+            }
+
+            filterResources();
+        });
+    });
+
+    // 初期表示
+    filterResources();
+</script>
+</body>
+</html>

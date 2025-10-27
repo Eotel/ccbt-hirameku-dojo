@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>パーリンノイズ - 自然なランダムさ</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .description {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        .value-display {
+            display: inline-block;
+            margin-left: 10px;
+            color: #007bff;
+            font-weight: bold;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #canvas-container {
+            text-align: center;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .comparison-item {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>☁️ パーリンノイズ - 自然なランダムさ</h1>
+        
+        <div class="description">
+            <h2>「自然な」ランダムさとは？</h2>
+            <p>
+                完全にランダムな数は、隣り合う値が全く関係なく、ガタガタした感じになります。
+                しかし自然界の多くのもの（<strong>雲の形</strong>、<strong>山の起伏</strong>、<strong>木目</strong>、
+                <strong>波の動き</strong>など）は、ランダムでありながら滑らかに変化しています。
+            </p>
+            <p>
+                <strong>パーリンノイズ</strong>は、Ken Perlinという人が開発した、このような「自然なランダムさ」を
+                生み出すアルゴリズムです。映画の特殊効果や、ゲームの地形生成などに広く使われています。
+            </p>
+        </div>
+
+        <div class="controls">
+            <h3>パラメータを変えて観察しよう</h3>
+            
+            <div class="control-group">
+                <label>
+                    表現モード:
+                    <select id="mode-select">
+                        <option value="terrain">地形（等高線）</option>
+                        <option value="clouds">雲</option>
+                        <option value="wood">木目</option>
+                        <option value="water">水面</option>
+                        <option value="marble">大理石</option>
+                        <option value="comparison">random()との比較</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="control-group">
+                <label>
+                    スケール（細かさ）: <span class="value-display" id="scale-value">0.01</span>
+                </label>
+                <input type="range" id="scale-slider" min="0.001" max="0.05" value="0.01" step="0.001">
+                <small>小さいほど細かいパターン、大きいほど大きなうねり</small>
+            </div>
+
+            <div class="control-group">
+                <label>
+                    <input type="checkbox" id="animate-check">
+                    アニメーション（時間の流れを追加）
+                </label>
+            </div>
+
+            <div class="control-group">
+                <button id="regenerate-btn">再生成</button>
+            </div>
+        </div>
+
+        <div id="canvas-container"></div>
+    </div>
+
+    <script>
+        let noiseScale = 0.01;
+        let mode = 'terrain';
+        let animate = false;
+        let timeOffset = 0;
+        
+        function setup() {
+            let canvas = createCanvas(800, 600);
+            canvas.parent('canvas-container');
+            
+            // イベントリスナー
+            document.getElementById('mode-select').addEventListener('change', (e) => {
+                mode = e.target.value;
+                if (mode === 'comparison') {
+                    noLoop();
+                    drawComparison();
+                } else {
+                    if (animate) {
+                        loop();
+                    } else {
+                        redraw();
+                    }
+                }
+            });
+            
+            document.getElementById('scale-slider').addEventListener('input', (e) => {
+                noiseScale = parseFloat(e.target.value);
+                document.getElementById('scale-value').textContent = noiseScale.toFixed(3);
+                if (mode !== 'comparison') {
+                    redraw();
+                }
+            });
+            
+            document.getElementById('animate-check').addEventListener('change', (e) => {
+                animate = e.target.checked;
+                if (animate && mode !== 'comparison') {
+                    loop();
+                } else {
+                    noLoop();
+                }
+            });
+            
+            document.getElementById('regenerate-btn').addEventListener('click', () => {
+                noiseSeed(random(10000));
+                if (mode === 'comparison') {
+                    drawComparison();
+                } else {
+                    redraw();
+                }
+            });
+            
+            noLoop();
+        }
+        
+        function draw() {
+            if (mode === 'comparison') {
+                return;
+            }
+            
+            background(255);
+            
+            if (animate) {
+                timeOffset += 0.01;
+            }
+            
+            switch(mode) {
+                case 'terrain':
+                    drawTerrain();
+                    break;
+                case 'clouds':
+                    drawClouds();
+                    break;
+                case 'wood':
+                    drawWood();
+                    break;
+                case 'water':
+                    drawWater();
+                    break;
+                case 'marble':
+                    drawMarble();
+                    break;
+            }
+        }
+        
+        function drawTerrain() {
+            loadPixels();
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    let noiseVal = noise(x * noiseScale, y * noiseScale, timeOffset);
+                    
+                    // 等高線風の色分け
+                    let c;
+                    if (noiseVal < 0.3) {
+                        c = color(50, 100, 200); // 水
+                    } else if (noiseVal < 0.4) {
+                        c = color(210, 180, 140); // 砂浜
+                    } else if (noiseVal < 0.6) {
+                        c = color(100, 180, 100); // 平地
+                    } else if (noiseVal < 0.8) {
+                        c = color(100, 150, 100); // 丘
+                    } else {
+                        c = color(200, 200, 200); // 山
+                    }
+                    
+                    set(x, y, c);
+                }
+            }
+            updatePixels();
+        }
+        
+        function drawClouds() {
+            loadPixels();
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    let noiseVal = noise(x * noiseScale, y * noiseScale, timeOffset);
+                    
+                    // 空のグラデーション + 雲
+                    let skyBlue = map(y, 0, height, 180, 220);
+                    let cloudWhite = map(noiseVal, 0, 1, 0, 255);
+                    
+                    let r = lerp(100, 255, noiseVal);
+                    let g = lerp(150, 255, noiseVal);
+                    let b = lerp(skyBlue, 255, noiseVal);
+                    
+                    set(x, y, color(r, g, b));
+                }
+            }
+            updatePixels();
+        }
+        
+        function drawWood() {
+            loadPixels();
+            let centerX = width / 2;
+            let centerY = height / 2;
+            
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    let d = dist(x, y, centerX, centerY);
+                    let noiseVal = noise(d * 0.02, timeOffset);
+                    
+                    // 木目の色
+                    let brown = map(noiseVal, 0, 1, 100, 200);
+                    set(x, y, color(brown, brown * 0.6, brown * 0.3));
+                }
+            }
+            updatePixels();
+        }
+        
+        function drawWater() {
+            loadPixels();
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    let noiseVal = noise(x * noiseScale * 2, y * noiseScale * 2, timeOffset * 2);
+                    
+                    // 水の色
+                    let blue = map(noiseVal, 0, 1, 100, 200);
+                    set(x, y, color(30, 100, blue));
+                }
+            }
+            updatePixels();
+        }
+        
+        function drawMarble() {
+            loadPixels();
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    // 複数のノイズを重ねる
+                    let noiseVal = noise(x * noiseScale, y * noiseScale, timeOffset);
+                    let noiseVal2 = noise(x * noiseScale * 3, y * noiseScale * 3, timeOffset);
+                    
+                    let combined = (noiseVal + noiseVal2 * 0.5) / 1.5;
+                    
+                    // 大理石の色（白とグレーの縞模様）
+                    let brightness = map(sin(combined * 20), -1, 1, 200, 255);
+                    set(x, y, color(brightness, brightness, brightness));
+                }
+            }
+            updatePixels();
+        }
+        
+        function drawComparison() {
+            background(240);
+            
+            // 左側：random()
+            fill(0);
+            textAlign(CENTER);
+            textSize(18);
+            text('random() - 完全にランダム', width / 4, 30);
+            
+            noFill();
+            stroke(100, 100, 255);
+            strokeWeight(2);
+            beginShape();
+            for (let x = 0; x < width / 2 - 40; x++) {
+                let y = map(random(), 0, 1, 100, height - 100);
+                vertex(x + 20, y);
+            }
+            endShape();
+            
+            // 右側：noise()
+            fill(0);
+            text('noise() - 自然なランダムさ', width * 3 / 4, 30);
+            
+            noFill();
+            stroke(255, 100, 100);
+            strokeWeight(2);
+            beginShape();
+            for (let x = 0; x < width / 2 - 40; x++) {
+                let y = map(noise(x * 0.01), 0, 1, 100, height - 100);
+                vertex(x + width / 2 + 20, y);
+            }
+            endShape();
+            
+            // 説明
+            fill(0);
+            textSize(14);
+            textAlign(LEFT);
+            text('← ガタガタで不自然', 20, height - 40);
+            text('滑らかで自然 →', width / 2 + 20, height - 40);
+        }
+    </script>
+</body>
+</html>
+

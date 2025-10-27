@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>セルオートマトン - 単純なルールから生まれる複雑さ</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .description {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .rule-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .rule-cell {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .rule-pattern {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 5px;
+        }
+        .rule-box {
+            width: 15px;
+            height: 15px;
+            border: 1px solid #ccc;
+            margin: 0 1px;
+        }
+        .rule-box.filled {
+            background-color: #333;
+        }
+        .value-display {
+            display: inline-block;
+            margin-left: 10px;
+            color: #007bff;
+            font-weight: bold;
+        }
+        #canvas-container {
+            text-align: center;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .info {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐚 セルオートマトン - 単純なルールから生まれる複雑さ</h1>
+        
+        <div class="description">
+            <h2>貝殻の模様の秘密</h2>
+            <p>
+                <strong>セルオートマトン</strong>は、マス目（セル）が並んでいて、各セルの次の状態が
+                「自分と隣のセルの今の状態」というシンプルなルールで決まるシステムです。
+            </p>
+            <p>
+                貝殻の美しい模様は、このセルオートマトンで説明できます。貝殻は成長するとき、
+                縁の部分に新しい層を追加していきます。その縁の各部分（セル）が、隣の部分の色を見て
+                自分の色を決めることで、複雑で美しいパターンが生まれるのです。
+            </p>
+            <p>
+                ここでは<strong>1次元セルオートマトン</strong>を使います。1行目は初期状態で、
+                2行目以降は前の行を見てルールに従って決まります。
+            </p>
+        </div>
+
+        <div class="controls">
+            <h3>ルールを選んで実験しよう</h3>
+            
+            <div class="control-group">
+                <label>
+                    ルール番号: <span class="value-display" id="rule-value">30</span>
+                </label>
+                <input type="range" id="rule-slider" min="0" max="255" value="30" step="1">
+                <small>0〜255の256通りのルールがあります。有名なルール: 30, 90, 110, 184</small>
+            </div>
+
+            <div class="control-group">
+                <button id="start-btn">スタート</button>
+                <button id="reset-btn">リセット</button>
+                <button id="step-btn">1ステップ進む</button>
+            </div>
+
+            <div class="control-group">
+                <label>
+                    初期状態:
+                    <select id="initial-select">
+                        <option value="single">中央に1つだけ</option>
+                        <option value="random">ランダム</option>
+                        <option value="custom">カスタム（クリックで設定）</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="control-group">
+                <label>
+                    セルのサイズ: <span class="value-display" id="size-value">5</span>
+                </label>
+                <input type="range" id="size-slider" min="2" max="10" value="5" step="1">
+            </div>
+
+            <div id="rule-display" class="info">
+                <strong>現在のルール:</strong>
+                <div class="rule-grid" id="rule-grid"></div>
+            </div>
+        </div>
+
+        <div id="canvas-container"></div>
+    </div>
+
+    <script>
+        let cellSize = 5;
+        let cols;
+        let rows;
+        let grid;
+        let currentRow = 0;
+        let ruleNumber = 30;
+        let ruleset = [];
+        let initialMode = 'single';
+        let running = false;
+        let customMode = false;
+        
+        function setup() {
+            cols = floor(800 / cellSize);
+            rows = floor(600 / cellSize);
+            
+            let canvas = createCanvas(cols * cellSize, rows * cellSize);
+            canvas.parent('canvas-container');
+            
+            grid = new Array(cols);
+            
+            generateRuleset(ruleNumber);
+            resetGrid();
+            updateRuleDisplay();
+            
+            // イベントリスナー
+            document.getElementById('rule-slider').addEventListener('input', (e) => {
+                ruleNumber = parseInt(e.target.value);
+                document.getElementById('rule-value').textContent = ruleNumber;
+                generateRuleset(ruleNumber);
+                updateRuleDisplay();
+                resetGrid();
+            });
+            
+            document.getElementById('start-btn').addEventListener('click', () => {
+                running = !running;
+                document.getElementById('start-btn').textContent = running ? '停止' : 'スタート';
+                if (running) {
+                    loop();
+                } else {
+                    noLoop();
+                }
+            });
+            
+            document.getElementById('reset-btn').addEventListener('click', () => {
+                running = false;
+                document.getElementById('start-btn').textContent = 'スタート';
+                noLoop();
+                resetGrid();
+            });
+            
+            document.getElementById('step-btn').addEventListener('click', () => {
+                if (!running) {
+                    nextGeneration();
+                    redraw();
+                }
+            });
+            
+            document.getElementById('initial-select').addEventListener('change', (e) => {
+                initialMode = e.target.value;
+                customMode = (initialMode === 'custom');
+                resetGrid();
+            });
+            
+            document.getElementById('size-slider').addEventListener('input', (e) => {
+                cellSize = parseInt(e.target.value);
+                document.getElementById('size-value').textContent = cellSize;
+                
+                cols = floor(800 / cellSize);
+                rows = floor(600 / cellSize);
+                resizeCanvas(cols * cellSize, rows * cellSize);
+                
+                grid = new Array(cols);
+                resetGrid();
+            });
+            
+            frameRate(10);
+            noLoop();
+        }
+        
+        function generateRuleset(num) {
+            ruleset = [];
+            for (let i = 7; i >= 0; i--) {
+                ruleset[i] = (num >> i) & 1;
+            }
+        }
+        
+        function resetGrid() {
+            currentRow = 0;
+            background(255);
+            
+            for (let i = 0; i < cols; i++) {
+                grid[i] = 0;
+            }
+            
+            if (initialMode === 'single') {
+                grid[floor(cols / 2)] = 1;
+            } else if (initialMode === 'random') {
+                for (let i = 0; i < cols; i++) {
+                    grid[i] = random() > 0.5 ? 1 : 0;
+                }
+            }
+            
+            drawCurrentRow();
+        }
+        
+        function draw() {
+            if (running && currentRow < rows - 1) {
+                nextGeneration();
+            } else if (currentRow >= rows - 1) {
+                running = false;
+                document.getElementById('start-btn').textContent = 'スタート';
+                noLoop();
+            }
+        }
+        
+        function nextGeneration() {
+            let nextGrid = new Array(cols);
+            
+            for (let i = 0; i < cols; i++) {
+                let left = grid[(i - 1 + cols) % cols];
+                let center = grid[i];
+                let right = grid[(i + 1) % cols];
+                
+                let index = left * 4 + center * 2 + right;
+                nextGrid[i] = ruleset[index];
+            }
+            
+            grid = nextGrid;
+            currentRow++;
+            drawCurrentRow();
+        }
+        
+        function drawCurrentRow() {
+            for (let i = 0; i < cols; i++) {
+                if (grid[i] === 1) {
+                    fill(50);
+                } else {
+                    fill(255);
+                }
+                noStroke();
+                rect(i * cellSize, currentRow * cellSize, cellSize, cellSize);
+            }
+        }
+        
+        function mousePressed() {
+            if (customMode && currentRow === 0 && mouseX >= 0 && mouseX < width && mouseY >= 0 && mouseY < cellSize) {
+                let col = floor(mouseX / cellSize);
+                grid[col] = 1 - grid[col];
+                drawCurrentRow();
+            }
+        }
+        
+        function updateRuleDisplay() {
+            const ruleGrid = document.getElementById('rule-grid');
+            ruleGrid.innerHTML = '';
+            
+            for (let i = 7; i >= 0; i--) {
+                const cell = document.createElement('div');
+                cell.className = 'rule-cell';
+                
+                const pattern = document.createElement('div');
+                pattern.className = 'rule-pattern';
+                
+                const left = (i >> 2) & 1;
+                const center = (i >> 1) & 1;
+                const right = i & 1;
+                
+                const leftBox = document.createElement('div');
+                leftBox.className = 'rule-box' + (left ? ' filled' : '');
+                const centerBox = document.createElement('div');
+                centerBox.className = 'rule-box' + (center ? ' filled' : '');
+                const rightBox = document.createElement('div');
+                rightBox.className = 'rule-box' + (right ? ' filled' : '');
+                
+                pattern.appendChild(leftBox);
+                pattern.appendChild(centerBox);
+                pattern.appendChild(rightBox);
+                
+                const arrow = document.createElement('div');
+                arrow.textContent = '↓';
+                
+                const result = document.createElement('div');
+                result.className = 'rule-box' + (ruleset[i] ? ' filled' : '');
+                result.style.margin = '5px auto';
+                
+                cell.appendChild(pattern);
+                cell.appendChild(arrow);
+                cell.appendChild(result);
+                
+                ruleGrid.appendChild(cell);
+            }
+        }
+    </script>
+</body>
+</html>
+

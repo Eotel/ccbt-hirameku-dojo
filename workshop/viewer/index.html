@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CCBT Workshop Viewer</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: #000;
+      }
+
+      iframe {
+        width: 100vw;
+        height: 100vh;
+        border: 0;
+        display: block;
+      }
+
+      .message {
+        display: grid;
+        place-content: center;
+        width: 100vw;
+        height: 100vh;
+        color: #e0e7ff;
+        font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+        font-size: 1rem;
+        background: #111536;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="message" id="fallback">loading…</div>
+    <iframe id="viewer-frame" title="OpenProcessing" allowfullscreen loading="lazy" hidden></iframe>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const params = new URLSearchParams(window.location.search);
+        const frame = document.getElementById('viewer-frame');
+        const fallback = document.getElementById('fallback');
+        const openProcessingUrl = params.get('openprocessing');
+
+        if (openProcessingUrl) {
+          frame.src = openProcessingUrl;
+          frame.addEventListener('load', () => {
+            fallback.remove();
+            frame.hidden = false;
+          });
+        } else {
+          fallback.textContent = 'openprocessing パラメータが未指定です。';
+        }
+      });
+    </script>
+  </body>
+</html>
