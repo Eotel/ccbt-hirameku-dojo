@@ -204,9 +204,15 @@ function drawASCII(cx, cy, w, h, ang, mag, n) {
 // 5) 図形いろいろ：形・色・大きさ・角度をノイズで
 function drawShapes(cx, cy, w, h, ang, mag, n1, n2, n3) {
     const s = min(w, h);
-    const sz = s * map(n1, 0, 1, 0.35, 0.95);  // 大きさ
-    const hue = map(n2, 0, 1, 190, 300);       // 青〜紫
+
+    // --- ノイズ値の役割 ---
+    // n1: サイズに利用。係数を変えると変化幅が変わる。
+    const sz = s * map(n1, 0, 1, 0.35, 0.95);
+    // n2: 色相に利用。範囲 190〜300 を差し替えれば別パレット。
+    const hue = map(n2, 0, 1, 190, 300);
+    // n3: 明るさ。暗いレンジ・明るいレンジを試すならここ。
     const bri = map(n3, 0, 1, 40, 95);
+    // mag: ベクトル強度。彩度に割り当てているので鮮やかさをコントロール。
     const sat = map(mag, 0, 1, 30, 95);
 
     push();
@@ -219,7 +225,17 @@ function drawShapes(cx, cy, w, h, ang, mag, n1, n2, n3) {
     } else noStroke();
     fill(hue, sat, bri, 1);
 
-    // 形の選び方：n1 で3種から選ぶ
+    // 同じセルに段々小さくなる図形を重ねたい場合の例。
+    // 下のブロックを有効にするとサイズ 0.8→0.2 の同心円が描かれ、複雑な模様を作れる。
+    // rect(...) に変えればネストした角丸四角になるので、好みで差し替えてみよう。
+    /*
+    for (let scale = 0.8; scale >= 0.2; scale -= 0.2) {
+        ellipse(0, 0, sz * scale, sz * scale);
+    }
+    return;
+    */
+
+    // 形の選び方：n1 で3種から選ぶ。分岐を追加すれば種類を増やせる。
     const which = floor(map(n1, 0, 1, 0, 3));
     if (which === 0) {
         rectMode(CENTER);

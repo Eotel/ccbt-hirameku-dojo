@@ -216,25 +216,34 @@ function drawASCII(cx, cy, w, h, ang, mag, n) {
 
 // 5) 図形いろいろ：形・色・大きさ・角度をノイズで
 function drawShapes(cx, cy, w, h, ang, mag, n1, n2, n3) {
-    const s = min(w, h);
-    const sz = s * map(n1, 0, 1, 0.35, 0.95);  // 大きさ
-    const hue = map(n2, 0, 1, 190, 300);       // 青〜紫
+    const s = min(w, h); // セル基準サイズ（形状の最大寸法）
+    const sw = 2; // 輪郭線の太さをまとめて調整したい場合はここを変更
+
+    // --- ノイズ値の役割 ---
+    // n1: 0→小さく / 1→大きく。ここを書き換えるとサイズの変化幅が変わる。
+    const sz = s * map(n1, 0, 1, 0.35, 0.95);
+    // n2: 色相を決める。色の範囲を変えたい場合は 190,300 を別の色相に。
+    const hue = map(n2, 0, 1, 190, 300);
+    // n3: 明るさを決める。40,95 を変えると暗め・明るめ方向へ振れる。
     const bri = map(n3, 0, 1, 40, 95);
+    // mag: ベクトルの強さ。ここでは彩度に使っているので淡い→鮮やかの幅を調整可能。
     const sat = map(mag, 0, 1, 30, 95);
 
     if (!shapeKit) {
+        // shapeKit が無いときはシンプルな図形を手動で描画
         push();
         translate(cx, cy);
         rotate(ang);
         if (useStroke) {
             stroke(0, 0, 0);
-            strokeWeight(2);
+            strokeWeight(sw);
         } else noStroke();
         fill(hue, sat, bri, 1);
+        // n1 を使って 3 つの形状から選択。分岐を増やせば種類を追加できる。
         const which = floor(map(n1, 0, 1, 0, 3));
         if (which === 0) {
             rectMode(CENTER);
-            rect(0, 0, sz, sz, s * 0.08);
+            rect(0, 0, sz, sz, s * 0.08); // 角丸正方形
         } else if (which === 1) {
             ellipse(0, 0, sz, sz);
         } else {
@@ -253,10 +262,11 @@ function drawShapes(cx, cy, w, h, ang, mag, n1, n2, n3) {
         rotation: ang,
         fill: fillColor,
         stroke: strokeColor,
-        strokeWeight: useStroke ? 2 : undefined
+        strokeWeight: useStroke ? sw : undefined
     };
 
-    const choice = floor(map(n1, 0, 1, 0, 4));
+
+    const choice = floor(map(n1, 0, 1, 0, 4)); // 図形バリエーションを増やしたい場合はここを調整
     if (choice === 0) {
         shapeKit.rect({
             ...base,
@@ -269,6 +279,19 @@ function drawShapes(cx, cy, w, h, ang, mag, n1, n2, n3) {
             ...base,
             diameter: sz
         });
+
+        // shapeKit を使って同じセルに同心図形を重ねたい場合の例。
+        // 以下のブロックをコメント解除すると、サイズを 0.2 ずつ減らした円が描画される。
+        // 好みで circle → rect へ差し替えたり、scale のリストを書き換えてパターンを作成できる。
+
+        // for (let scale = 0.8; scale >= 0.2; scale -= 0.2) {
+        //     shapeKit.circle({
+        //         ...base,
+        //         diameter: sz * scale,
+        //         fill: fillColor,
+        //         stroke: strokeColor
+        //     });
+        // }
     } else if (choice === 2) {
         shapeKit.diamond({
             ...base,
