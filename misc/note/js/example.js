@@ -72,14 +72,17 @@ function draw() {
         background(0, 0, 95); // 薄いグレー
     }
 
-    const cw = width / gridX;   // 1マスの幅
-    const ch = height / gridY;   // 1マスの高さ
+    const cell = min(width / gridX, height / gridY);
+    const offsetX = (width - cell * gridX) * 0.5;
+    const offsetY = (height - cell * gridY) * 0.5;
+    const cw = cell;
+    const ch = cell;
 
     // グリッドを走査
     for (let j = 0; j < gridY; j++) {
         for (let i = 0; i < gridX; i++) {
-            const x = (i + 0.5) * cw; // マス中心
-            const y = (j + 0.5) * ch;
+            const x = offsetX + (i + 0.5) * cw; // マス中心
+            const y = offsetY + (j + 0.5) * ch;
 
             // 座標→ノイズ入力（スケールで拡大縮小）
             const nx = x * noiseScale;
@@ -147,36 +150,38 @@ function drawHSB(x, y, w, h, nH, nS, nB) {
 
 // 3) ベクターフィールド：ノイズ角度に矢印を向けて動かす
 function drawVector(cx, cy, w, h, ang, mag) {
-    const len = min(w, h) * map(mag, 0, 1, 0.25, 0.48);
-    const x2 = cx + cos(ang) * len;
-    const y2 = cy + sin(ang) * len;
-
-    if (useStroke) stroke(220, 40, 30, 0.9);
-    else noStroke();
-    fill(220, 40, 40, 0.9);
-
-    // 矢印の軸
-    strokeWeight(2);
-    line(cx, cy, x2, y2);
-
-    // 矢印の先
     push();
-    translate(x2, y2);
+    translate(cx, cy);
     rotate(ang);
-    noStroke();
-    triangle(0, 0, -len * 0.25, +len * 0.12, -len * 0.25, -len * 0.12);
+
+    const len = min(w, h) * 0.95;
+    const half = len / 2;
+
+    if (useStroke) {
+        stroke(220, 40, 30, 0.9);
+        strokeWeight(map(mag, 0, 1, 1.5, 3));
+    } else {
+        noStroke();
+    }
+
+    line(-half, 0, half, 0);
     pop();
 }
 
 // 4) ASCIIアート：角度や強さから文字を選ぶ
 function drawASCII(cx, cy, w, h, ang, mag, n) {
     const set = ASCII_SETS[asciiIndex % ASCII_SETS.length];
+    if (!set || set.length === 0) return;
+
+    // ノイズ値は端に寄りづらいので補正をかけ、配列末尾の文字も出やすくする
+    let normalized = constrain(map(mag, 0.18, 0.82, 0, 1), 0, 1);
+    normalized = 1 - pow(1 - normalized, 2); // easeOutQuad で高値を強調
 
     // 二つのやり方から一つ選ぶ（コメントアウトで切替）
     // A) 強さで選ぶ
-    let idx = floor(map(mag, 0, 1, 0, set.length));
+    let idx = floor(normalized * set.length);
     // B) 角度で選ぶ（試してみよう）
-    // let idx = floor(map(ang, 0, TWO_PI, 0, set.length));
+    // let idx = floor(map((ang + TWO_PI) % TWO_PI, 0, TWO_PI, 0, set.length));
 
     idx = constrain(idx, 0, set.length - 1);
     const ch = set[idx];
