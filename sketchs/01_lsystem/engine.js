@@ -177,6 +177,30 @@
             settings.presetKey = 'custom';
         }
 
+        function applySettingsSnapshot(snapshot, options = {}) {
+            if (!snapshot || typeof snapshot !== 'object') {
+                return;
+            }
+
+            const patch = {...snapshot};
+            if (Object.prototype.hasOwnProperty.call(patch, 'rules')) {
+                patch.rules = cloneRules(patch.rules);
+            }
+
+            const skipRegenerate = Boolean(options.skipRegenerate);
+            const silent = Boolean(options.silent);
+
+            setSettings(patch);
+
+            if (Object.prototype.hasOwnProperty.call(snapshot, 'presetKey')) {
+                settings.presetKey = snapshot.presetKey || 'custom';
+            }
+
+            if (!skipRegenerate) {
+                regenerate({silent});
+            }
+        }
+
         function setRule(symbol, expansion) {
             if (!symbol) {
                 return;
@@ -407,6 +431,7 @@
             regenerate,
             applyPreset,
             setSettings,
+            applySettingsSnapshot,
             setRule,
             setRules,
             updateBranchCount,

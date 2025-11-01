@@ -49,13 +49,7 @@ const ASCII_SETS = [
 ];
 
 function setup() {
-    const canvas = createCanvas(windowWidth, windowHeight);
-    const container = document.getElementById('canvas-container');
-    if (container) {
-        canvas.parent(container);
-        const hint = container.querySelector('.loading-hint');
-        if (hint) hint.remove();
-    }
+    createCanvas(windowWidth, windowHeight);
     colorMode(HSB, 360, 100, 100, 1);
     textAlign(CENTER, CENTER);
     textFont('monospace');
@@ -153,7 +147,7 @@ function drawHSB(x, y, w, h, nH, nS, nB) {
 
 // 3) ベクターフィールド：ノイズ角度に矢印を向けて動かす
 function drawVector(cx, cy, w, h, ang, mag) {
-    const len = min(w, h) * map(mag, 0, 1, 0.35, 0.72);
+    const len = min(w, h) * map(mag, 0, 1, 0.25, 0.48);
     const x2 = cx + cos(ang) * len;
     const y2 = cy + sin(ang) * len;
 
@@ -162,7 +156,7 @@ function drawVector(cx, cy, w, h, ang, mag) {
     fill(220, 40, 40, 0.9);
 
     // 矢印の軸
-    strokeWeight(3);
+    strokeWeight(2);
     line(cx, cy, x2, y2);
 
     // 矢印の先

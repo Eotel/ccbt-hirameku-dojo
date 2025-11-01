@@ -481,7 +481,8 @@
         </section>
         <section class="interaction-guide">
             <h2>タートルのステップ再生</h2>
-            <p>命令列を 1 記号ずつ実行する「ステップモード」で、タートルの動きを追いながら成長の流れを観察できます。最後に描いた枝が少し明るくハイライトされ、ステータスパネルに進行度と速度が表示されます。</p>
+            <p>命令列を 1
+                記号ずつ実行する「ステップモード」で、タートルの動きを追いながら成長の流れを観察できます。最後に描いた枝が少し明るくハイライトされ、ステータスパネルに進行度と速度が表示されます。</p>
             <ul>
                 <li><code>T</code> … ステップモードの切り替え（オンにすると最初の状態から開始）</li>
                 <li><code>Space</code> … 再生 / 一時停止を切り替え</li>
@@ -607,7 +608,7 @@
     }
 
     // プリセットアコーディオンの生成
-    window.addEventListener('DOMContentLoaded', function() {
+    window.addEventListener('DOMContentLoaded', function () {
         const accordion = document.getElementById('preset-accordion');
         if (!accordion || !window.LSystemConfig) {
             console.warn('Accordion or LSystemConfig not found');
@@ -624,21 +625,21 @@
 
             const header = document.createElement('div');
             header.className = 'preset-header';
-            
+
             const title = document.createElement('h3');
             title.className = 'preset-title';
             title.textContent = preset.label;
-            
+
             const toggle = document.createElement('div');
             toggle.className = 'preset-toggle';
             toggle.innerHTML = '▼';
-            
+
             header.appendChild(title);
             header.appendChild(toggle);
-            
+
             const content = document.createElement('div');
             content.className = 'preset-content';
-            
+
             const description = document.createElement('p');
             description.className = 'preset-description';
             description.textContent = preset.description;
@@ -679,7 +680,7 @@
             }
             item.appendChild(header);
             item.appendChild(content);
-            
+
             header.addEventListener('click', () => {
                 const wasActive = item.classList.contains('active');
                 // 他のアイテムを閉じる
@@ -691,7 +692,7 @@
                     item.classList.add('active');
                 }
             });
-            
+
             fragment.appendChild(item);
         });
 

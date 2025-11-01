@@ -3,7 +3,9 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>STEP 4 ルールで育つ Cellular Automaton</title>
+    <title>STEP 2 パターンを生み出す セルオートマトン</title>
+    <script src="../common/utils.js"></script>
+    <script src="config.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -12,8 +14,8 @@
         body {
             margin: 0;
             font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
-            background: linear-gradient(135deg, #2b1033 0%, #4a1d44 40%, #1f2937 100%);
-            color: #fefce8;
+            background: linear-gradient(140deg, #0f172a 0%, #1e293b 40%, #334155 100%);
+            color: #f1f7f4;
             min-height: 100vh;
             padding: 32px 16px 48px;
             display: flex;
@@ -32,9 +34,10 @@
             gap: 18px;
             padding: 28px 32px 32px;
             border-radius: 24px;
-            background: linear-gradient(160deg, rgba(236, 72, 153, 0.2), rgba(202, 138, 4, 0.28));
-            border: 1px solid rgba(251, 191, 36, 0.3);
-            box-shadow: 0 22px 40px rgba(56, 15, 70, 0.45);
+            background: linear-gradient(160deg, rgba(59, 130, 246, 0.18), rgba(30, 64, 175, 0.26));
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(147, 197, 253, 0.25);
+            box-shadow: 0 22px 40px rgba(2, 6, 23, 0.35);
         }
 
         .back-link {
@@ -44,8 +47,8 @@
             gap: 6px;
             padding: 8px 14px;
             border-radius: 999px;
-            background: rgba(217, 70, 239, 0.2);
-            color: #fdf4ff;
+            background: rgba(30, 64, 175, 0.22);
+            color: #dbeafe;
             text-decoration: none;
             font-size: 0.92rem;
             transition: background 0.2s ease;
@@ -53,7 +56,7 @@
 
         .back-link:hover,
         .back-link:focus {
-            background: rgba(217, 70, 239, 0.32);
+            background: rgba(59, 130, 246, 0.38);
         }
 
         header h1 {
@@ -65,7 +68,7 @@
         .lead {
             margin: 0;
             line-height: 1.8;
-            color: #fefce8;
+            color: #e0f2fe;
             font-size: 1.05rem;
         }
 
@@ -79,12 +82,52 @@
         }
 
         .key-points li {
-            background: rgba(217, 70, 239, 0.24);
-            border: 1px solid rgba(251, 191, 36, 0.32);
+            background: rgba(30, 58, 138, 0.35);
+            border: 1px solid rgba(96, 165, 250, 0.24);
             border-radius: 16px;
             padding: 14px 18px;
             line-height: 1.6;
-            color: #fef3c7;
+            color: #bfdbfe;
+        }
+
+        .rule-explanation {
+            padding: 18px 22px 20px;
+            border-radius: 18px;
+            background: rgba(30, 64, 175, 0.14);
+            border: 1px solid rgba(59, 130, 246, 0.28);
+            display: grid;
+            gap: 14px;
+        }
+
+        .rule-explanation h2 {
+            margin: 0;
+            font-size: 1rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #bfdbfe;
+        }
+
+        .rule-explanation p {
+            margin: 0;
+            line-height: 1.7;
+            font-size: 0.96rem;
+            color: #dbeafe;
+        }
+
+        .rule-table {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 10px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9rem;
+        }
+
+        .rule-cell {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center;
         }
 
         main {
@@ -93,11 +136,143 @@
             gap: 18px;
         }
 
+        .preset-guide {
+            background: rgba(30, 58, 138, 0.35);
+            border: 1px solid rgba(96, 165, 250, 0.24);
+            border-radius: 20px;
+            padding: 22px 26px;
+            display: grid;
+            gap: 16px;
+            color: #dbeafe;
+        }
+
+        .preset-guide h2 {
+            margin: 0;
+            font-size: 1.3rem;
+            letter-spacing: 0.04em;
+            color: #bfdbfe;
+        }
+
+        .interaction-guide {
+            background: rgba(30, 64, 175, 0.24);
+            border: 1px solid rgba(96, 165, 250, 0.22);
+            border-radius: 20px;
+            padding: 24px 28px;
+            display: grid;
+            gap: 14px;
+            color: #dbeafe;
+        }
+
+        .interaction-guide h2 {
+            margin: 0;
+            font-size: 1.22rem;
+            letter-spacing: 0.05em;
+            color: #bae6fd;
+        }
+
+        .interaction-guide p {
+            margin: 0;
+            line-height: 1.7;
+            font-size: 0.96rem;
+        }
+
+        .interaction-guide ul {
+            margin: 0;
+            padding-left: 22px;
+            display: grid;
+            gap: 8px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .interaction-guide li {
+            color: #e0f2fe;
+        }
+
+        .interaction-guide code {
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(96, 165, 250, 0.24);
+            color: #fef3c7;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .preset-accordion {
+            display: grid;
+            gap: 8px;
+        }
+
+        .preset-item {
+            background: rgba(30, 64, 175, 0.18);
+            border: 1px solid rgba(96, 165, 250, 0.22);
+            border-radius: 14px;
+            overflow: hidden;
+            transition: background 0.2s ease;
+        }
+
+        .preset-item.active {
+            background: rgba(30, 64, 175, 0.28);
+        }
+
+        .preset-header {
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .preset-header:hover {
+            background: rgba(96, 165, 250, 0.12);
+        }
+
+        .preset-title {
+            margin: 0;
+            font-size: 1.02rem;
+            font-weight: 600;
+            color: #e0e7ff;
+            flex: 1;
+        }
+
+        .preset-toggle {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #93c5fd;
+            transition: transform 0.2s ease;
+        }
+
+        .preset-item.active .preset-toggle {
+            transform: rotate(180deg);
+        }
+
+        .preset-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .preset-item.active .preset-content {
+            max-height: 200px;
+        }
+
+        .preset-description {
+            padding: 0 18px 14px;
+            line-height: 1.6;
+            font-size: 0.94rem;
+            color: #e0f2fe;
+        }
+
         .viewer {
-            background: rgba(30, 27, 75, 0.82);
+            background: rgba(2, 6, 23, 0.82);
             border-radius: 24px;
-            border: 1px solid rgba(217, 70, 239, 0.26);
-            box-shadow: 0 24px 48px rgba(15, 23, 42, 0.52);
+            border: 1px solid rgba(96, 165, 250, 0.2);
+            box-shadow: 0 24px 48px rgba(2, 6, 23, 0.42);
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -108,21 +283,20 @@
             align-items: center;
             justify-content: space-between;
             padding: 20px 24px;
-            background: rgba(147, 51, 234, 0.2);
-            border-bottom: 1px solid rgba(251, 191, 36, 0.2);
+            background: rgba(30, 64, 175, 0.18);
+            border-bottom: 1px solid rgba(96, 165, 250, 0.16);
         }
 
         .viewer-title {
             margin: 0;
             font-size: 1.2rem;
             letter-spacing: 0.05em;
-            color: #f5d0fe;
+            color: #bfdbfe;
         }
 
         .control-bar {
             display: inline-flex;
             gap: 12px;
-            flex-wrap: wrap;
         }
 
         .button {
@@ -133,9 +307,9 @@
             gap: 6px;
             padding: 10px 18px;
             border-radius: 999px;
-            border: 1px solid rgba(251, 191, 36, 0.45);
-            background: rgba(217, 70, 239, 0.26);
-            color: #fdf4ff;
+            border: 1px solid rgba(191, 219, 254, 0.4);
+            background: rgba(96, 165, 250, 0.25);
+            color: #e0f2fe;
             font-weight: 600;
             font-size: 0.95rem;
             cursor: pointer;
@@ -144,32 +318,15 @@
 
         .button:hover,
         .button:focus {
-            background: rgba(236, 72, 153, 0.35);
+            background: rgba(96, 165, 250, 0.4);
             transform: translateY(-1px);
-            box-shadow: 0 12px 24px rgba(236, 72, 153, 0.25);
-        }
-
-        .button[disabled] {
-            cursor: not-allowed;
-            opacity: 0.6;
-            transform: none;
-            background: rgba(107, 114, 128, 0.18);
-            border-color: rgba(148, 163, 184, 0.26);
-            box-shadow: none;
-        }
-
-        .button[disabled]:hover {
-            transform: none;
-        }
-
-        .button-link[hidden] {
-            display: none;
+            box-shadow: 0 12px 24px rgba(96, 165, 250, 0.25);
         }
 
         .embed-shell {
             position: relative;
             padding-top: min(65vh, 640px);
-            background: radial-gradient(circle at 50% 20%, rgba(217, 70, 239, 0.22), rgba(17, 24, 39, 0.95));
+            background: radial-gradient(circle at 50% 30%, rgba(96, 165, 250, 0.18), rgba(15, 23, 42, 0.9));
         }
 
         iframe {
@@ -190,8 +347,8 @@
             gap: 16px;
             padding: 24px;
             text-align: center;
-            background: radial-gradient(circle at 50% 50%, rgba(41, 37, 107, 0.68), rgba(30, 27, 75, 0.92));
-            color: #fce7f3;
+            background: radial-gradient(circle at 50% 50%, rgba(30, 41, 59, 0.65), rgba(2, 6, 23, 0.92));
+            color: #cbd5f5;
         }
 
         .loading[hidden],
@@ -207,19 +364,15 @@
             padding: 10px 18px;
             border-radius: 999px;
             text-decoration: none;
-            background: #facc15;
-            color: #1f2937;
+            background: #60a5fa;
+            color: #0b1120;
             font-weight: 600;
             transition: background 0.2s ease;
         }
 
         .fallback a:hover,
         .fallback a:focus {
-            background: #eab308;
-        }
-
-        .fallback a[hidden] {
-            display: none;
+            background: #3b82f6;
         }
 
         @media (max-width: 768px) {
@@ -261,27 +414,65 @@
 <div class="page">
     <header>
         <a class="back-link" href="/">← スケッチ一覧に戻る</a>
-        <h1>STEP 4 ルールで育つ Cellular Automaton</h1>
+        <h1>STEP 2 パターンを生み出す セルオートマトン</h1>
         <p class="lead">
-            セルオートマトンは「左右と自分」を見るだけの単純なルールから複雑な模様が立ち上がるアルゴリズム。
-            ルール番号と初期状態を変えながら、貝殻の縞や幾何学的パターンが現れる過程を追いかけましょう。
+            セルオートマトン(Cellular Automaton)は、単純なルールから複雑なパターンを生み出す計算モデルです。
+            各セルが近隣のセルの状態を見て次の状態を決定することで、予測不可能な美しいパターンが現れます。
         </p>
         <ul class="key-points">
-            <li>局所的な条件が全体の模様を形づくる創発を体験</li>
-            <li>ルール番号を変えてカオス・規則・複雑系の違いを比較</li>
-            <li>初期状態・境界条件で模様の広がり方がどう変わるか観察</li>
+            <li>0から255までの256通りのルールで異なるパターンを生成</li>
+            <li>決定論的なのに予測困難なカオス的振る舞いを観察</li>
+            <li>フラクタル構造や自己組織化現象の発見</li>
+            <li>計算理論・物理学・生物学への応用</li>
         </ul>
+        <section aria-label="セルオートマトンのルール" class="rule-explanation">
+            <h2>1次元セルオートマトンのルール</h2>
+            <p>
+                各セルは自分と左右の隣接セル(計3セル)の状態を見て、次の世代の状態を決定します。
+                3つのセルの状態は8通り(2³)あり、それぞれに対する出力を0か1で指定します。
+                この8ビットの2進数を10進数で表したものがルール番号です。
+            </p>
+            <div class="rule-table">
+                <div class="rule-cell">111 → ?</div>
+                <div class="rule-cell">110 → ?</div>
+                <div class="rule-cell">101 → ?</div>
+                <div class="rule-cell">100 → ?</div>
+                <div class="rule-cell">011 → ?</div>
+                <div class="rule-cell">010 → ?</div>
+                <div class="rule-cell">001 → ?</div>
+                <div class="rule-cell">000 → ?</div>
+            </div>
+            <p>
+                例: ルール30 = 00011110₂ の場合、111→0, 110→0, 101→0, 100→1, 011→1, 010→1, 001→1, 000→0
+            </p>
+        </section>
+        <section class="interaction-guide">
+            <h2>操作方法</h2>
+            <p>キーボードショートカットでセルオートマトンの動作を制御できます。</p>
+            <ul>
+                <li><code>Space</code> … アニメーションの再生/停止を切り替え</li>
+                <li><code>R</code> … 現在の設定で再生成(リセット)</li>
+                <li><code>N</code> … 1世代進める(手動ステップ実行)</li>
+                <li><code>S</code> … 現在の画面を画像として保存</li>
+                <li>GUI で「ルール番号」「初期パターン」「配色」などをリアルタイムに変更可能</li>
+            </ul>
+        </section>
     </header>
     <main>
+        <section class="preset-guide">
+            <h2>プリセット紹介</h2>
+            <div class="preset-accordion" id="preset-accordion">
+                <!-- JavaScript で動的に生成 -->
+            </div>
+        </section>
         <section class="viewer">
             <div class="viewer-header">
                 <h2 class="viewer-title">OpenProcessing Live Sketch</h2>
                 <div class="control-bar">
-                    <button class="button" disabled id="fullscreen-button" type="button">全画面表示</button>
+                    <button class="button" id="fullscreen-button" type="button">全画面表示</button>
                     <a
-                            class="button button-link"
-                            hidden
-                            href="#"
+                            class="button"
+                            href=""
                             id="openprocessing-link"
                             rel="noopener"
                             target="_blank"
@@ -293,8 +484,8 @@
             <div class="embed-shell" id="embed-shell">
                 <div class="loading" id="loading">読み込み中…</div>
                 <div class="fallback" hidden id="fallback">
-                    <div id="fallback-message">埋め込みを表示できませんでした。</div>
-                    <a hidden href="#" id="fallback-link" rel="noopener" target="_blank">OpenProcessing を開く</a>
+                    <div>埋め込みを表示できませんでした。</div>
+                    <a href="" rel="noopener" target="_blank">OpenProcessing を開く</a>
                 </div>
                 <iframe
                         allowfullscreen
@@ -302,6 +493,7 @@
                         hidden
                         id="openprocessing-frame"
                         loading="lazy"
+                        src=""
                         title="Cellular Automaton on OpenProcessing"
                 ></iframe>
             </div>
@@ -309,34 +501,23 @@
     </main>
 </div>
 <script>
-    const OPENPROCESSING_URL = '';
+    // OpenProcessing URL の設定 (実際のプロジェクトIDに置き換えてください)
+    const OPENPROCESSING_URL = '';  // 例: 'https://openprocessing.org/sketch/1234567'
 
     const frame = document.getElementById('openprocessing-frame');
     const loading = document.getElementById('loading');
     const fallback = document.getElementById('fallback');
-    const fallbackMessage = document.getElementById('fallback-message');
-    const fallbackLink = document.getElementById('fallback-link');
     const fullscreenButton = document.getElementById('fullscreen-button');
     const embedShell = document.getElementById('embed-shell');
-    const openLink = document.getElementById('openprocessing-link');
+    const openprocessingLink = document.getElementById('openprocessing-link');
 
-    const normalizedUrl = OPENPROCESSING_URL.replace(/\/$/, '');
-    const embedUrl = normalizedUrl ? `${normalizedUrl}/embed/` : '';
+    // OpenProcessing URL が設定されている場合のみ iframe を有効化
+    if (OPENPROCESSING_URL) {
+        frame.src = OPENPROCESSING_URL + '/embed/';
+        openprocessingLink.href = OPENPROCESSING_URL;
+        fallback.querySelector('a').href = OPENPROCESSING_URL;
 
-    let fallbackTimer = null;
-
-    if (embedUrl) {
-        frame.src = embedUrl;
-        if (openLink) {
-            openLink.href = normalizedUrl;
-            openLink.hidden = false;
-        }
-        if (fallbackLink) {
-            fallbackLink.href = normalizedUrl;
-            fallbackLink.hidden = false;
-        }
-
-        fallbackTimer = window.setTimeout(() => {
+        const fallbackTimer = window.setTimeout(() => {
             if (frame.hidden) {
                 loading.hidden = true;
                 fallback.hidden = false;
@@ -348,9 +529,6 @@
             frame.hidden = false;
             loading.hidden = true;
             fallback.hidden = true;
-            if (fullscreenButton) {
-                fullscreenButton.disabled = false;
-            }
         });
 
         frame.addEventListener('error', () => {
@@ -360,15 +538,12 @@
         });
     } else {
         loading.hidden = true;
-        if (fallback) {
-            fallback.hidden = false;
-        }
-        if (fallbackMessage) {
-            fallbackMessage.textContent = 'OpenProcessing の URL が未設定です。設定後に再読み込みしてください。';
-        }
-        if (fullscreenButton) {
-            fullscreenButton.disabled = true;
-        }
+        fallback.hidden = false;
+        fallback.querySelector('div').textContent = 'OpenProcessing URL が設定されていません';
+        fallback.querySelector('a').style.display = 'none';
+        fullscreenButton.disabled = true;
+        openprocessingLink.style.pointerEvents = 'none';
+        openprocessingLink.style.opacity = '0.5';
     }
 
     function requestFullscreen(element) {
@@ -404,20 +579,74 @@
         fullscreenButton.textContent = active ? '全画面を終了' : '全画面表示';
     }
 
-    if (fullscreenButton) {
+    if (fullscreenButton && OPENPROCESSING_URL) {
         fullscreenButton.addEventListener('click', () => {
-            if (!embedUrl) {
-                return;
-            }
             const active = document.fullscreenElement === embedShell;
             const action = active ? exitFullscreen() : requestFullscreen(embedShell);
             Promise.resolve(action).catch((error) => {
-                console.warn('[cellular] fullscreen failed', error);
+                console.warn('[ca] fullscreen failed', error);
             });
         });
         document.addEventListener('fullscreenchange', syncFullscreenButton);
         syncFullscreenButton();
     }
+
+    // プリセットアコーディオンの生成
+    window.addEventListener('DOMContentLoaded', function () {
+        const accordion = document.getElementById('preset-accordion');
+        if (!accordion || !window.CellularAutomatonConfig) {
+            console.warn('Accordion or CellularAutomatonConfig not found');
+            return;
+        }
+
+        const presets = window.CellularAutomatonConfig.PRESETS;
+        const fragment = document.createDocumentFragment();
+
+        Object.entries(presets).forEach(([key, preset], index) => {
+            const item = document.createElement('div');
+            item.className = 'preset-item';
+            if (index === 0) item.classList.add('active');
+
+            const header = document.createElement('div');
+            header.className = 'preset-header';
+
+            const title = document.createElement('h3');
+            title.className = 'preset-title';
+            title.textContent = preset.label;
+
+            const toggle = document.createElement('div');
+            toggle.className = 'preset-toggle';
+            toggle.innerHTML = '▼';
+
+            header.appendChild(title);
+            header.appendChild(toggle);
+
+            const content = document.createElement('div');
+            content.className = 'preset-content';
+
+            const description = document.createElement('p');
+            description.className = 'preset-description';
+            description.textContent = preset.description;
+
+            content.appendChild(description);
+            item.appendChild(header);
+            item.appendChild(content);
+
+            header.addEventListener('click', () => {
+                const wasActive = item.classList.contains('active');
+                accordion.querySelectorAll('.preset-item').forEach(i => {
+                    i.classList.remove('active');
+                });
+                if (!wasActive) {
+                    item.classList.add('active');
+                }
+            });
+
+            fragment.appendChild(item);
+        });
+
+        accordion.appendChild(fragment);
+    });
 </script>
 </body>
 </html>

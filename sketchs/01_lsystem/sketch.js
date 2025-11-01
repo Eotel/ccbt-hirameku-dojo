@@ -41,6 +41,10 @@
         lastFrameMillis: null
     };
 
+    const displayOptions = {
+        showTurtleIndicator: false
+    };
+
     // 初期プリセットを適用（描画は setup 内で行う）
     engine.applyPreset(config.DEFAULT_PRESET_KEY, {skipRegenerate: true, silent: true});
 
@@ -91,6 +95,13 @@
 
         drawSegmentsUpTo(executedCount, highlightIndex);
 
+        if (displayOptions.showTurtleIndicator) {
+            const turtleState = getTurtleIndicatorState(executedCount);
+            if (turtleState) {
+                drawTurtleIndicator(turtleState);
+            }
+        }
+
         if (playbackState.mode === 'step') {
             if (playbackState.playing) {
                 advancePlayback();
@@ -129,6 +140,76 @@
         }
     }
 
+    function getTurtleIndicatorState(executedCount) {
+        const commands = renderCache.commands;
+        const defaultWidth = engine.settings.baseBranchWidth ?? 10;
+
+        if (!Array.isArray(commands) || commands.length === 0) {
+            return {
+                position: {x: 0, y: 0},
+                heading: -90,
+                width: defaultWidth
+            };
+        }
+
+        if (executedCount <= 0) {
+            const first = commands[0];
+            return {
+                position: clonePoint(first.positionBefore || {x: 0, y: 0}),
+                heading: Number.isFinite(first.headingBefore) ? first.headingBefore : -90,
+                width: Number.isFinite(first.widthBefore) ? first.widthBefore : defaultWidth
+            };
+        }
+
+        const index = Math.min(executedCount - 1, commands.length - 1);
+        const command = commands[index];
+        const position = command.positionAfter
+            ? clonePoint(command.positionAfter)
+            : clonePoint(command.positionBefore);
+        const heading = Number.isFinite(command.headingAfter)
+            ? command.headingAfter
+            : Number.isFinite(command.headingBefore)
+                ? command.headingBefore
+                : -90;
+        const width = Number.isFinite(command.widthAfter)
+            ? command.widthAfter
+            : Number.isFinite(command.widthBefore)
+                ? command.widthBefore
+                : defaultWidth;
+
+        return {position, heading, width};
+    }
+
+    function drawTurtleIndicator({position, heading, width}) {
+        if (!position) {
+            return;
+        }
+
+        const baseSize = Math.max(6, (Number.isFinite(width) ? width : 8) * 2.2);
+
+        push();
+        colorMode(RGB, 255);
+        translate(position.x, position.y);
+        rotate(heading);
+
+        stroke(15, 23, 42, 220);
+        strokeWeight(1.5);
+        fill(56, 189, 248, 170);
+
+        beginShape();
+        vertex(baseSize, 0);
+        vertex(-baseSize * 0.6, baseSize * 0.55);
+        vertex(-baseSize * 0.3, 0);
+        vertex(-baseSize * 0.6, -baseSize * 0.55);
+        endShape(CLOSE);
+
+        noFill();
+        stroke(56, 189, 248, 140);
+        ellipse(0, 0, baseSize * 0.9, baseSize * 0.9);
+
+        pop();
+    }
+
     function windowResized() {
         const {width: nextWidth, height: nextHeight} = computeCanvasSize();
         if (nextWidth === engine.settings.canvasWidth && nextHeight === engine.settings.canvasHeight) {
@@ -160,6 +241,33 @@
         redraw();
     }
 
+    function applyFullSettingsSnapshot(snapshot, {silent = false} = {}) {
+        if (!snapshot || typeof snapshot !== 'object') {
+            return;
+        }
+
+        const settingsSnapshot = {};
+        for (const key in snapshot) {
+            if (!Object.prototype.hasOwnProperty.call(snapshot, key) || key === 'displayOptions') {
+                continue;
+            }
+            settingsSnapshot[key] = snapshot[key];
+        }
+
+        const displaySnapshot =
+            snapshot.displayOptions && typeof snapshot.displayOptions === 'object'
+                ? {...snapshot.displayOptions}
+                : null;
+
+        engine.applySettingsSnapshot(settingsSnapshot, {skipRegenerate: true, silent: true});
+
+        if (displaySnapshot) {
+            setDisplayOptions(displaySnapshot);
+        }
+
+        regenerateTree({silent});
+    }
+
     function prepareRenderCache() {
         const sentence = engine.getSentence() || '';
         const derived = deriveExecutionState(sentence, engine.settings);
@@ -185,6 +293,26 @@
         }
 
         noLoop();
+    }
+
+    function setDisplayOptions(patch = {}) {
+        if (!patch || typeof patch !== 'object') {
+            return;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(patch, 'showTurtleIndicator')) {
+            displayOptions.showTurtleIndicator = Boolean(patch.showTurtleIndicator);
+        }
+
+        if (typeof redraw === 'function') {
+            redraw();
+        }
+    }
+
+    function getDisplayOptionsSnapshot() {
+        return {
+            showTurtleIndicator: Boolean(displayOptions.showTurtleIndicator)
+        };
     }
 
     function clampStepIndex(value) {
@@ -633,6 +761,9 @@
             getSentence: () => engine.getSentence(),
             getStats: () => engine.getStats(),
             getSettingsSnapshot: () => engine.getSettingsSnapshot(),
+            getDisplayOptions: () => getDisplayOptionsSnapshot(),
+            applySettingsSnapshot: (snapshot, options = {}) => applyFullSettingsSnapshot(snapshot, options),
+            setDisplayOptions: (patch) => setDisplayOptions(patch),
             ruleControlKey: (symbol) => engine.ruleControlKey(symbol),
             serializeRule: (expansion) => engine.serializeRule(expansion),
             parseRuleInput: (value) => engine.parseRuleInput(value),
@@ -710,6 +841,18 @@
         }
 
         window.addEventListener('keydown', (event) => {
+            const target = event.target;
+            const tag = target && target.tagName ? target.tagName.toLowerCase() : '';
+            const isEditable = Boolean(
+                (target && target.isContentEditable) ||
+                tag === 'input' ||
+                tag === 'textarea' ||
+                tag === 'select'
+            );
+            if (isEditable) {
+                return;
+            }
+
             const key = (event.key || '').toLowerCase();
             for (const shortcut of shortcutList) {
                 if (shortcut.key === key) {

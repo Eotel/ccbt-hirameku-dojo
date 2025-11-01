@@ -1,293 +1,261 @@
-const SETTINGS = {
-    canvasWidth: 800,
-    canvasHeight: 600,
-    ruleNumber: 110,
-    cellSize: 6,
-    wrapEdges: true,
-    autoPlay: true,
-    seedMode: 'center', // 'center', 'two', 'random'
-    gradientTop: [255, 232, 214],
-    gradientBottom: [169, 120, 221],
-    highlightColor: [255, 255, 255],
-    frameInterval: 2,
-    randomSeed: 2025
-};
+(() => {
+    const utils = window.Utils;
+    const config = window.CellularAutomatonConfig;
+    const engineFactory = window.CellularAutomatonEngine;
+    const guiFactory = window.CellularAutomatonGui;
 
-const BASE_CANVAS_WIDTH = SETTINGS.canvasWidth || 800;
-const BASE_CANVAS_HEIGHT = SETTINGS.canvasHeight || 600;
-const CANVAS_ASPECT_RATIO = BASE_CANVAS_WIDTH / BASE_CANVAS_HEIGHT;
-
-let cols = 0;
-let rows = 0;
-let generations = [];
-let lookupTable = {};
-let visibleRows = 1;
-let frameCounter = 0;
-
-function setup() {
-    const initialSize = computeCanvasSize();
-    SETTINGS.canvasWidth = initialSize.width;
-    SETTINGS.canvasHeight = initialSize.height;
-
-    const canvas = createCanvas(initialSize.width, initialSize.height);
-    attachCanvas(canvas);
-    pixelDensity(1);
-    frameRate(30);
-
-    if (Number.isFinite(SETTINGS.randomSeed)) {
-        randomSeed(SETTINGS.randomSeed);
+    if (!utils) {
+        throw new Error('Utils が読み込まれていません。先に ../common/utils.js を含めてください。');
+    }
+    if (!config) {
+        throw new Error('CellularAutomatonConfig が読み込まれていません。config.js を先に読み込んでください。');
+    }
+    if (!engineFactory || typeof engineFactory.create !== 'function') {
+        throw new Error('CellularAutomatonEngine が初期化されていません。engine.js を読み込んでください。');
     }
 
-    rebuild();
+    const {
+        attachCanvas: attachCanvasToContainer,
+        updateStatusPanel: applyStatusPanelContent,
+        registerKeyboardShortcuts,
+        saveCanvasWithTimestamp
+    } = utils;
 
-    if (!SETTINGS.autoPlay) {
-        noLoop();
-        redraw();
+    const engine = engineFactory.create({config, utils});
+    const guiManager = guiFactory && typeof guiFactory.create === 'function' ? guiFactory.create() : null;
+    let appContext = null;
+
+    let isAnimating = false;
+    let lastGenerationTime = 0;
+    let maxGenerations = 0;
+
+    // 初期プリセットを適用
+    engine.applyPreset(config.DEFAULT_PRESET_KEY, {skipRegenerate: true, silent: true});
+
+    function setup() {
+        const {width, height} = computeCanvasSize();
+        engine.settings.canvasWidth = width;
+        engine.settings.canvasHeight = height;
+
+        const canvas = createCanvas(width, height);
+        if (typeof attachCanvasToContainer === 'function') {
+            attachCanvasToContainer(canvas, 'canvas-container');
+        } else {
+            canvas.parent(document.body);
+        }
+
+        updateCanvasShellHeight(height);
+        colorMode(HSB, 360, 100, 100);
+        noStroke();
+
+        maxGenerations = Math.floor(height / engine.settings.cellSize);
+        engine.regenerate({silent: true});
+
+        appContext = announceAppReady();
+        if (guiManager && typeof guiManager.maybeAttachInlineGui === 'function') {
+            guiManager.maybeAttachInlineGui(appContext);
+        }
+
+        attachShortcuts();
     }
-}
 
-function draw() {
-    background(
-        SETTINGS.gradientBottom[0],
-        SETTINGS.gradientBottom[1],
-        SETTINGS.gradientBottom[2]
-    );
-    noStroke();
+    function draw() {
+        const settings = engine.settings;
+        const grid = engine.getGrid();
 
-    const totalRows = Math.min(visibleRows, generations.length);
+        // 背景
+        const bg = settings.backgroundColor || [245, 248, 252];
+        background(bg[0] ?? 245, bg[1] ?? 248, bg[2] ?? 252);
 
-    for (let y = 0; y < totalRows; y++) {
-        const row = generations[y];
-        const t = y / Math.max(rows - 1, 1);
-        const fillColor = lerpColorArray(SETTINGS.gradientTop, SETTINGS.gradientBottom, t);
-        fill(fillColor[0], fillColor[1], fillColor[2]);
-        for (let x = 0; x < cols; x++) {
-            if (row[x] === 1) {
-                rect(x * SETTINGS.cellSize, y * SETTINGS.cellSize, SETTINGS.cellSize, SETTINGS.cellSize);
+        // グリッドを描画
+        const cellSize = settings.cellSize;
+        const generationsToShow = Math.min(grid.length, maxGenerations);
+
+        for (let gen = 0; gen < generationsToShow; gen++) {
+            const row = grid[gen];
+            const y = gen * cellSize;
+
+            for (let i = 0; i < row.length; i++) {
+                if (row[i] === 1) {
+                    const x = i * cellSize;
+                    fill(getCellColor(settings, gen, generationsToShow));
+                    rect(x, y, cellSize, cellSize);
+                }
             }
         }
-    }
 
-    if (totalRows < rows) {
-        fill(SETTINGS.highlightColor[0], SETTINGS.highlightColor[1], SETTINGS.highlightColor[2], 120);
-        rect(0, totalRows * SETTINGS.cellSize, width, SETTINGS.cellSize);
-    }
+        // アニメーション処理
+        if (isAnimating && grid.length < maxGenerations) {
+            const now = millis();
+            const interval = 1000 / settings.animationSpeed;
 
-    drawOverlay(totalRows);
-    updateStatusPanel(totalRows);
-
-    if (SETTINGS.autoPlay && visibleRows < rows) {
-        frameCounter++;
-        if (frameCounter % SETTINGS.frameInterval === 0) {
-            visibleRows++;
+            if (now - lastGenerationTime >= interval) {
+                engine.stepGeneration({silent: true});
+                lastGenerationTime = now;
+                updateStatus();
+            }
+        } else if (isAnimating && grid.length >= maxGenerations) {
+            isAnimating = false;
         }
     }
-}
 
-function rebuild() {
-    cols = Math.floor(width / SETTINGS.cellSize);
-    rows = Math.floor(height / SETTINGS.cellSize);
-    buildLookupTable(SETTINGS.ruleNumber);
-    generateGenerations();
-    visibleRows = 1;
-    frameCounter = 0;
-    requestRender();
-}
+    function getCellColor(settings, generation, maxGen) {
+        const schemeName = settings.colorScheme || 'classic';
+        const schemes = config.COLOR_SCHEMES || {};
+        const scheme = schemes[schemeName];
 
-function buildLookupTable(ruleNumber) {
-    const binary = ruleNumber.toString(2).padStart(8, '0');
-    const patterns = ['111', '110', '101', '100', '011', '010', '001', '000'];
-    lookupTable = {};
-    for (let i = 0; i < patterns.length; i++) {
-        lookupTable[patterns[i]] = parseInt(binary[i], 10);
+        // カラースキーム定義が存在する場合は、それを使用
+        if (scheme && typeof scheme.compute === 'function') {
+            const colorData = scheme.compute(generation, maxGen, settings);
+
+            if (colorData.mode === 'hsb') {
+                // HSB モード
+                return color(colorData.h, colorData.s, colorData.b);
+            } else {
+                // RGB モード (デフォルト)
+                return color(colorData.r, colorData.g, colorData.b);
+            }
+        }
+
+        // フォールバック: カラースキームが見つからない場合は固定色を使用
+        const cellColor = settings.cellColor || [30, 41, 59];
+        return color(cellColor[0], cellColor[1], cellColor[2]);
     }
-}
 
-function generateGenerations() {
-    generations = [];
-    const firstRow = createSeedRow(cols, SETTINGS.seedMode);
-    generations.push(firstRow);
-    for (let r = 1; r < rows; r++) {
-        generations.push(nextRow(generations[r - 1]));
+    function computeCanvasSize() {
+        const containerWidth = typeof window !== 'undefined' ? window.innerWidth : 800;
+        const containerHeight = typeof window !== 'undefined' ? window.innerHeight : 600;
+        const aspectRatio = engine.aspectRatio || (4 / 3);
+
+        let width = Math.min(containerWidth - 40, 1200);
+        let height = Math.floor(width / aspectRatio);
+
+        if (height > containerHeight - 100) {
+            height = containerHeight - 100;
+            width = Math.floor(height * aspectRatio);
+        }
+
+        return {width, height};
     }
-}
 
-function createSeedRow(length, mode) {
-    const row = new Array(length).fill(0);
-    if (mode === 'center') {
-        row[Math.floor(length / 2)] = 1;
-    } else if (mode === 'two') {
-        row[Math.floor(length / 3)] = 1;
-        row[Math.floor((length * 2) / 3)] = 1;
-    } else {
-        for (let i = 0; i < length; i++) {
-            row[i] = random() > 0.5 ? 1 : 0;
+    function updateCanvasShellHeight(height) {
+        if (typeof document === 'undefined') {
+            return;
+        }
+        const shell = document.getElementById('canvas-shell');
+        if (shell) {
+            shell.style.height = `${height}px`;
         }
     }
-    return row;
-}
 
-function nextRow(previous) {
-    const next = new Array(previous.length).fill(0);
-    for (let i = 0; i < previous.length; i++) {
-        const left = SETTINGS.wrapEdges
-            ? previous[(i - 1 + previous.length) % previous.length]
-            : previous[i - 1] || 0;
-        const center = previous[i];
-        const right = SETTINGS.wrapEdges
-            ? previous[(i + 1) % previous.length]
-            : previous[i + 1] || 0;
-        const key = `${left}${center}${right}`;
-        next[i] = lookupTable[key];
-    }
-    return next;
-}
-
-function lerpColorArray(a, b, t) {
-    return [
-        lerp(a[0], b[0], t),
-        lerp(a[1], b[1], t),
-        lerp(a[2], b[2], t)
-    ];
-}
-
-function drawOverlay(totalRows) {
-    resetMatrix();
-    noStroke();
-    fill(42, 24, 68, 185);
-    rect(18, height - 116, 320, 100, 14);
-    fill(255);
-    textAlign(LEFT, TOP);
-    textSize(13);
-    const binary = SETTINGS.ruleNumber.toString(2).padStart(8, '0');
-    text(
-        `rule ${SETTINGS.ruleNumber}  rows ${totalRows}/${rows}\nseed=${SETTINGS.seedMode}  wrap=${SETTINGS.wrapEdges ? 'on' : 'off'}\n`
-        + `bits: ${binary.slice(0, 4)} ${binary.slice(4)}`,
-        30,
-        height - 104
-    );
-
-    textAlign(RIGHT, BOTTOM);
-    textSize(12);
-    text('Space:再生/停止  →:1行進める  r:リセット  s:保存', width - 24, height - 20);
-}
-
-function requestRender() {
-    redraw();
-}
-
-function advanceRows(count) {
-    visibleRows = constrain(visibleRows + count, 1, rows);
-    requestRender();
-}
-
-function toggleAutoPlay() {
-    SETTINGS.autoPlay = !SETTINGS.autoPlay;
-    if (SETTINGS.autoPlay) {
-        loop();
-    } else {
-        noLoop();
-    }
-    updateStatusPanel(Math.min(visibleRows, generations.length));
-}
-
-function updateStatusPanel(totalRows) {
-    const panel = document.getElementById('status-panel');
-    if (!panel) return;
-
-    panel.innerHTML = `
-    <p><strong>ruleNumber</strong>: ${SETTINGS.ruleNumber}</p>
-    <p><strong>seedMode</strong>: ${SETTINGS.seedMode}</p>
-    <p><strong>wrapEdges</strong>: ${SETTINGS.wrapEdges ? 'true' : 'false'}</p>
-    <p><strong>autoPlay</strong>: ${SETTINGS.autoPlay ? 'true' : 'false'} (${SETTINGS.frameInterval}f/step)</p>
-    <p><strong>表示行</strong>: ${totalRows}/${rows}</p>
-    <p class="refresh-hint">値を変えたら保存→リロードで反映されます。</p>
-  `;
-}
-
-window.addEventListener('keydown', (event) => {
-    if (event.code === 'Space') {
-        event.preventDefault();
-        toggleAutoPlay();
-    }
-    if (event.key === 'ArrowRight') {
-        advanceRows(1);
-    }
-    if (event.key === 'r') {
-        rebuild();
-    }
-    if (event.key === 's') {
-        saveCanvas(`cellular_rule_${SETTINGS.ruleNumber}`, 'png');
-    }
-});
-
-function windowResized() {
-    const nextSize = computeCanvasSize();
-    if (nextSize.width === width && nextSize.height === height) {
-        return;
-    }
-
-    resizeCanvas(nextSize.width, nextSize.height);
-    SETTINGS.canvasWidth = nextSize.width;
-    SETTINGS.canvasHeight = nextSize.height;
-
-    rebuild();
-}
-
-function attachCanvas(canvas) {
-    if (!canvas || typeof canvas.parent !== 'function') {
-        return;
-    }
-    const container = document.getElementById('canvas-container');
-    if (container) {
-        canvas.parent(container);
-    } else {
-        canvas.parent(document.body);
-    }
-}
-
-function computeCanvasSize() {
-    if (typeof window === 'undefined') {
-        return {
-            width: BASE_CANVAS_WIDTH,
-            height: BASE_CANVAS_HEIGHT
+    function announceAppReady() {
+        const context = {
+            engine,
+            redraw: () => {
+                const {width, height} = computeCanvasSize();
+                engine.settings.canvasWidth = width;
+                engine.settings.canvasHeight = height;
+                resizeCanvas(width, height);
+                updateCanvasShellHeight(height);
+                maxGenerations = Math.floor(height / engine.settings.cellSize);
+                redraw();
+                updateStatus();
+            }
         };
+
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('ca-ready', {detail: context}));
+        }
+
+        updateStatus();
+        return context;
     }
 
-    const minWidth = 320;
-    const minHeight = 240;
-    const marginX = 48;
-    const marginY = 200;
+    function updateStatus() {
+        if (typeof applyStatusPanelContent !== 'function') {
+            return;
+        }
 
-    const container = document.getElementById('canvas-container');
-    const containerWidth = container && container.clientWidth ? Math.max(minWidth, container.clientWidth) : null;
-    const containerHeight = container && container.clientHeight ? Math.max(minHeight, container.clientHeight) : null;
+        const stats = engine.getStats();
+        const settings = engine.settings;
 
-    const safeWindowWidth = Math.max(minWidth, window.innerWidth - marginX);
-    let maxUsableWidth = safeWindowWidth;
-    if (Number.isFinite(containerWidth)) {
-        maxUsableWidth = Math.min(maxUsableWidth, containerWidth);
-    }
-    maxUsableWidth = Math.max(minWidth, maxUsableWidth);
+        const lines = [
+            `ルール: ${settings.rule} (${engine.getRuleBinary()})`,
+            `世代: ${stats.generation}`,
+            `生存セル: ${stats.aliveCells} / ${stats.totalCells}`,
+            `状態: ${isAnimating ? '▶️ 実行中' : '⏸️ 停止'}`
+        ];
 
-    let width = Math.round(maxUsableWidth);
-    let height = Math.round(width / CANVAS_ASPECT_RATIO);
-
-    const safeWindowHeight = Math.max(minHeight, window.innerHeight - marginY);
-    let maxUsableHeight = safeWindowHeight;
-    if (Number.isFinite(containerHeight) && containerHeight > 0) {
-        maxUsableHeight = Math.min(maxUsableHeight, containerHeight);
-    }
-    maxUsableHeight = Math.max(minHeight, maxUsableHeight);
-
-    if (height > maxUsableHeight) {
-        height = Math.round(maxUsableHeight);
-        width = Math.round(height * CANVAS_ASPECT_RATIO);
-        width = Math.min(width, maxUsableWidth);
+        applyStatusPanelContent(lines.join('\n'));
     }
 
-    width = Math.max(minWidth, Math.min(width, maxUsableWidth));
-    height = Math.max(minHeight, height);
+    function attachShortcuts() {
+        if (typeof registerKeyboardShortcuts !== 'function') {
+            return;
+        }
 
-    return {width, height};
-}
+        registerKeyboardShortcuts([
+            {
+                key: ' ',
+                handler: () => {
+                    toggleAnimation();
+                }
+            },
+            {
+                key: 'r',
+                handler: () => {
+                    engine.regenerate();
+                    redraw();
+                    updateStatus();
+                }
+            },
+            {
+                key: 'n',
+                handler: () => {
+                    if (engine.getGrid().length < maxGenerations) {
+                        engine.stepGeneration({silent: true});
+                        redraw();
+                        updateStatus();
+                    }
+                }
+            },
+            {
+                key: 's',
+                handler: () => {
+                    if (typeof saveCanvasWithTimestamp === 'function') {
+                        saveCanvasWithTimestamp(`ca-rule${engine.settings.rule}`);
+                    }
+                }
+            },
+            {
+                key: 'h',
+                handler: () => {
+                    if (guiManager && typeof guiManager.toggleVisibility === 'function') {
+                        guiManager.toggleVisibility();
+                    }
+                }
+            }
+        ]);
+    }
+
+    function toggleAnimation() {
+        isAnimating = !isAnimating;
+        if (isAnimating) {
+            lastGenerationTime = millis();
+            loop();
+        } else {
+            noLoop();
+        }
+        updateStatus();
+    }
+
+    // p5.js グローバル関数
+    window.setup = setup;
+    window.draw = draw;
+
+    window.windowResized = () => {
+        if (appContext && typeof appContext.redraw === 'function') {
+            appContext.redraw();
+        }
+    };
+})();

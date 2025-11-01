@@ -247,6 +247,28 @@ const Utils = (() => {
         if (typeof window === 'undefined') return;
 
         window.addEventListener('keydown', (event) => {
+            const target = event.target;
+            const isEditable = () => {
+                if (!target) {
+                    return false;
+                }
+
+                if (target.isContentEditable) {
+                    return true;
+                }
+
+                const tag = (target.tagName || '').toLowerCase();
+                if (tag === 'input' || tag === 'textarea' || tag === 'select') {
+                    return true;
+                }
+
+                return false;
+            };
+
+            if (isEditable()) {
+                return;
+            }
+
             const key = event.key.toLowerCase();
             const ctrl = event.ctrlKey || event.metaKey;
             const shift = event.shiftKey;
