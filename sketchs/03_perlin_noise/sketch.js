@@ -38,15 +38,18 @@ let useStroke = true;
 
 let seed = 12345;   // noiseSeed と randomSeed をそろえる
 let asciiIndex = 0; // どのASCIIセットを使うか
+let shapeKit = null;
 
 // 好みで追加OK：ASCIIの候補
-const ASCII_SETS = [
+const ASCII_SETS_DEFAULT = [
     ['.', ':', '*', 'o', 'O', '#', '@'],
     ['-', '/', '|', '\\', '+'],
     ['<', '^', '>', 'v'],
     ['□', '■'],
     ['░', '▒', '▓', '█']
 ];
+
+let asciiSets = ASCII_SETS_DEFAULT.map((set) => [...set]);
 
 function setup() {
     const canvas = createCanvas(windowWidth, windowHeight);
@@ -60,6 +63,9 @@ function setup() {
     textAlign(CENTER, CENTER);
     textFont('monospace');
     strokeCap(SQUARE);
+    if (typeof Shapes !== 'undefined' && Shapes && typeof Shapes.create === 'function') {
+        shapeKit = Shapes.create();
+    }
     reseed();
 }
 
@@ -176,7 +182,8 @@ function drawVector(cx, cy, w, h, ang, mag) {
 
 // 4) ASCIIアート：角度や強さから文字を選ぶ
 function drawASCII(cx, cy, w, h, ang, mag, n) {
-    const set = ASCII_SETS[asciiIndex % ASCII_SETS.length];
+    if (asciiSets.length === 0) return;
+    const set = asciiSets[asciiIndex % asciiSets.length];
 
     // 二つのやり方から一つ選ぶ（コメントアウトで切替）
     // A) 強さで選ぶ
@@ -210,46 +217,82 @@ function drawShapes(cx, cy, w, h, ang, mag, n1, n2, n3) {
     const bri = map(n3, 0, 1, 40, 95);
     const sat = map(mag, 0, 1, 30, 95);
 
-    push();
-    translate(cx, cy);
-    rotate(ang);
-
-    if (useStroke) {
-        stroke(0, 0, 0);
-        strokeWeight(2);
-    } else noStroke();
-    fill(hue, sat, bri, 1);
-
-    // 形の選び方：n1 で3種から選ぶ
-    const which = floor(map(n1, 0, 1, 0, 3));
-    if (which === 0) {
-        rectMode(CENTER);
-        rect(0, 0, sz, sz, s * 0.08); // 角丸正方形
-        // 参考：入れ子の小さい四角（コメントを外すと表示）
-        // fill(hue, sat*0.2, bri*0.8);
-        // rect(0, 0, sz*0.55, sz*0.55, s*0.05);
-    } else if (which === 1) {
-        ellipse(0, 0, sz, sz);
-    } else {
-        // ひし形（回転した長方形）
-        rectMode(CENTER);
-        rect(0, 0, sz * 0.65, sz * 0.25);
+    if (!shapeKit) {
+        push();
+        translate(cx, cy);
+        rotate(ang);
+        if (useStroke) {
+            stroke(0, 0, 0);
+            strokeWeight(2);
+        } else noStroke();
+        fill(hue, sat, bri, 1);
+        const which = floor(map(n1, 0, 1, 0, 3));
+        if (which === 0) {
+            rectMode(CENTER);
+            rect(0, 0, sz, sz, s * 0.08);
+        } else if (which === 1) {
+            ellipse(0, 0, sz, sz);
+        } else {
+            rectMode(CENTER);
+            rect(0, 0, sz * 0.65, sz * 0.25);
+        }
+        pop();
+        return;
     }
-    pop();
+
+    const fillColor = color(hue, sat, bri, 1);
+    const strokeColor = useStroke ? color(0, 0, 0) : null;
+    const base = {
+        x: cx,
+        y: cy,
+        rotation: ang,
+        fill: fillColor,
+        stroke: strokeColor,
+        strokeWeight: useStroke ? 2 : undefined
+    };
+
+    const choice = floor(map(n1, 0, 1, 0, 4));
+    if (choice === 0) {
+        shapeKit.rect({
+            ...base,
+            width: sz,
+            height: sz,
+            radius: s * 0.08
+        });
+    } else if (choice === 1) {
+        shapeKit.circle({
+            ...base,
+            diameter: sz
+        });
+    } else if (choice === 2) {
+        shapeKit.diamond({
+            ...base,
+            diameter: sz,
+            aspectRatio: map(n2, 0, 1, 0.6, 1.4)
+        });
+    } else {
+        shapeKit.star({
+            ...base,
+            diameter: sz * 1.1,
+            spikes: max(3, floor(map(n3, 0, 1, 4, 8))),
+            innerScale: map(mag, 0, 1, 0.35, 0.6)
+        });
+    }
 }
 
 /* --- HUDと補助 --- */
 
 function drawHUD() {
+    const totalSets = asciiSets.length;
     const lines = [
-        `mode: ${mode}  [1]BW  [2]HSB  [3]Vector  [4]ASCII  [5]Shapes`,
-        `grid: ${gridX} x ${gridY}  [ / ]`,
-        `noiseScale: ${nf(noiseScale, 1, 3)}  N/M`,
-        `timeSpeed:  ${nf(timeSpeed, 1, 3)}  V/B`,
-        `stroke: ${useStroke ? 'ON' : 'OFF'}  O`,
-        `grid line: ${showGrid ? 'ON' : 'OFF'}  G`,
-        `ASCII set: ${asciiIndex % ASCII_SETS.length} / ${ASCII_SETS.length}  C`,
-        `seed: ${seed}  R=reset  Space=${animate ? 'pause' : 'play'}  S=save`
+        `モード: ${mode}  1=白黒  2=HSB  3=ベクター  4=ASCII  5=図形`,
+        `グリッド: ${gridX} × ${gridY}  [ / ]`,
+        `ノイズ細かさ: ${nf(noiseScale, 1, 3)}  N ↑  M ↓`,
+        `アニメ速度: ${nf(timeSpeed, 1, 3)}  V ↑  B ↓`,
+        `線の描画: ${useStroke ? 'あり' : 'なし'}  O`,
+        `ガイド格子: ${showGrid ? '表示' : '非表示'}  G`,
+        `ASCIIセット: ${asciiIndex % max(1, totalSets)} / ${max(1, totalSets)}  C=切替  Shift+C=追加`,
+        `シード: ${seed}  R=入替  Space=${animate ? '一時停止' : '再生'}  S=保存`
     ];
     noStroke();
     fill(0, 0, 0, 0.7);
@@ -298,6 +341,11 @@ function keyPressed() {
     if (k === 'g') showGrid = !showGrid;
     if (k === 'h') showHelp = !showHelp;
 
+    if (key === 'C') {
+        requestAsciiSetFromPrompt();
+        return;
+    }
+
     if (k === 'c') asciiIndex++;
 
     if (k === 'r') {
@@ -311,4 +359,54 @@ function keyPressed() {
 function useClearInVectorMode() {
     // 残像を見たいときは false にする（ここを切り替えて試す）
     return true; // ← false にすると線が重なり流線っぽくなる
+}
+
+function addAsciiSet(chars) {
+    if (!chars) return false;
+    let set;
+    if (typeof chars === 'string') {
+        const trimmed = chars.trim();
+        if (!trimmed) return false;
+        set = Array.from(trimmed);
+    } else if (Array.isArray(chars)) {
+        set = chars.map((ch) => String(ch)).filter((ch) => ch.length > 0);
+    } else {
+        return false;
+    }
+
+    if (set.length === 0) return false;
+    asciiSets = [...asciiSets, set];
+    asciiIndex = asciiSets.length - 1;
+    return true;
+}
+
+function resetAsciiSets() {
+    asciiSets = ASCII_SETS_DEFAULT.map((set) => [...set]);
+    asciiIndex = 0;
+}
+
+function requestAsciiSetFromPrompt() {
+    if (typeof prompt !== 'function') return;
+    const message = '新しい ASCII セットを入力してください（例: .:*oO#@）。半角スペースは区切りになります。';
+    const input = prompt(message, '');
+    if (!input) return;
+
+    const normalized = input
+        .split(/\s+/)
+        .map((chunk) => chunk.trim())
+        .filter((chunk) => chunk.length > 0);
+
+    if (normalized.length === 0) return;
+
+    normalized.forEach((chunk) => {
+        addAsciiSet(chunk);
+    });
+}
+
+if (typeof window !== 'undefined') {
+    window.AsciiPatterns = {
+        add: addAsciiSet,
+        list: () => asciiSets.map((set) => [...set]),
+        reset: resetAsciiSets
+    };
 }

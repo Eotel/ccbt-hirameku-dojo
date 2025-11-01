@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "http-server . -c-1 -p 4173",
+    "build": "node tools/build-static.js",
     "capture": "node tools/capture-screenshots.js",
     "capture:presets": "node tools/capture-presets.js"
   },

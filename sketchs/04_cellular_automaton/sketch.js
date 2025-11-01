@@ -108,7 +108,10 @@
         if (scheme && typeof scheme.compute === 'function') {
             const colorData = scheme.compute(generation, maxGen, settings);
 
-            if (colorData.mode === 'hsb') {
+            if (colorData.hex) {
+                // HEX モード (16進数カラーコード)
+                return color(colorData.hex);
+            } else if (colorData.mode === 'hsb') {
                 // HSB モード
                 return color(colorData.h, colorData.s, colorData.b);
             } else {
