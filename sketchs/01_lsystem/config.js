@@ -1,4 +1,9 @@
 (() => {
+    // dat.GUI を超えて遊びたいときのヒント:
+    // axiom を起点文字列、rules を変換ルールとして調整すると枝分かれの仕方がガラッと変わります。
+    // さらに iterations・turnAngle・stepDecay を組み合わせると密度や向きが変わり、子どもたちが「何を変えるとどう動くか」を体験できます。
+    // 色遊びを入れたいときは baseHue・hueStep や branchColor を直接書き換えてから再読み込みしてください。
+
     const PRESETS = {
         spreadingTree: {
             label: '広がる大きな木',
@@ -120,6 +125,7 @@
             settings: {
                 axiom: 'F',
                 rules: {
+                    // value を増やすと選択肢が増え、weight を変えると出現しやすさが調整できます。
                     F: [
                         {value: 'FF-[-F+F+F]+[+F-F-F]', weight: 0.5},
                         {value: 'FF+[+F-F]-[-F+F]', weight: 0.5}
@@ -233,6 +239,7 @@
     const DEFAULT_PRESET_KEY = 'fractalTree';
 
     const BASE_TEMPLATE = {
+        // 新しいプリセットを試す前に、このテンプレートをコピーして値をいじると安全に比較できます。
         axiom: 'F',
         rules: {
             F: 'F'

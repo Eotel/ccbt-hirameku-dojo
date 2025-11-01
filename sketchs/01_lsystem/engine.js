@@ -202,6 +202,7 @@
         }
 
         function setRule(symbol, expansion) {
+            // dat.GUI から届かない独自スライダーやワークショップ課題で呼び出すと、1文字ずつルールを上書きできます。
             if (!symbol) {
                 return;
             }
@@ -225,6 +226,7 @@
         }
 
         function setRules(nextRules) {
+            // 複数のルールをまとめて差し替えたいときは setRules を使うと安全にクローンされます。
             if (!nextRules) {
                 return;
             }

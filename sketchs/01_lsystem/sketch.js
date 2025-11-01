@@ -25,6 +25,7 @@
     const guiManager = guiFactory && typeof guiFactory.create === 'function' ? guiFactory.create() : null;
     let appContext = null;
 
+    // ここに追加した記号は L-system の「前進」として描画されます（例: 'G' を入れると GUI から追加した G ルールも線になります）。
     const DRAW_COMMANDS = new Set(['F', 'A', 'B', 'G']);
     const renderCache = {
         commands: [],
