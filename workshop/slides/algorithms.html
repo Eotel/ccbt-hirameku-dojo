@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>アルゴリズム紹介スライド</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --font-ui: 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic', 'Meiryo', sans-serif;
+            --shadow-lg: 0 18px 45px rgba(0, 0, 0, 0.18);
+            --bg-body: radial-gradient(circle at 15% 15%, #ffe7f2, #f7faff 60%, #e2fdeb 100%);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: clamp(24px, 6vw, 64px);
+            font-family: var(--font-ui);
+            background: var(--bg-body);
+            display: flex;
+            justify-content: center;
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(32px, 5vh, 64px);
+            width: min(1200px, 100%);
+        }
+
+        .slide {
+            aspect-ratio: 16 / 9;
+            border-radius: clamp(24px, 4vw, 48px);
+            padding: clamp(24px, 3.4vw, 48px);
+            display: grid;
+            grid-template-columns: minmax(0, 5fr) minmax(0, 4.5fr);
+            gap: clamp(24px, 2.6vw, 40px);
+            color: #1b1734;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide::after {
+            content: '';
+            position: absolute;
+            inset: 18px;
+            border-radius: inherit;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            pointer-events: none;
+        }
+
+        .slide__content {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(12px, 1.5vw, 20px);
+            position: relative;
+            z-index: 1;
+        }
+
+        .slide__tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            background: rgba(255, 255, 255, 0.55);
+            color: rgba(34, 27, 63, 0.76);
+            margin: 0;
+        }
+
+        .slide h2 {
+            margin: 0;
+            font-size: clamp(1.8rem, 2.6vw, 2.6rem);
+            letter-spacing: 0.06em;
+        }
+
+        .slide__details {
+            display: grid;
+            gap: clamp(12px, 1.4vw, 18px);
+        }
+
+        .detail-block h3 {
+            margin: 0 0 6px;
+            font-size: clamp(1.05rem, 1.5vw, 1.3rem);
+            letter-spacing: 0.04em;
+        }
+
+        .detail-block p {
+            margin: 0;
+            line-height: 1.6;
+            font-size: clamp(0.95rem, 1.2vw, 1.05rem);
+        }
+
+        figure {
+            margin: 0;
+            position: relative;
+            z-index: 1;
+            display: grid;
+            gap: 12px;
+            align-content: start;
+        }
+
+        figure img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: clamp(18px, 2.4vw, 32px);
+            box-shadow: 0 16px 32px rgba(20, 18, 45, 0.22);
+        }
+
+        figcaption {
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: rgba(27, 23, 52, 0.78);
+            background: rgba(255, 255, 255, 0.64);
+            padding: 8px 12px;
+            border-radius: 12px;
+        }
+
+        .references {
+            background: rgba(255, 255, 255, 0.72);
+            border-radius: clamp(20px, 3.6vw, 40px);
+            padding: clamp(24px, 3vw, 40px);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), var(--shadow-lg);
+            display: grid;
+            gap: clamp(12px, 1.6vw, 20px);
+        }
+
+        .references h2 {
+            margin: 0;
+            font-size: clamp(1.4rem, 2vw, 2rem);
+            letter-spacing: 0.04em;
+            color: rgba(34, 27, 63, 0.86);
+        }
+
+        .references ul {
+            margin: 0;
+            padding-left: 1.2em;
+            display: grid;
+            gap: clamp(8px, 1.1vw, 14px);
+            line-height: 1.6;
+            font-size: clamp(0.95rem, 1.2vw, 1.05rem);
+            color: rgba(34, 27, 63, 0.78);
+        }
+
+        .slide--lsystem {
+            background: radial-gradient(circle at 18% 20%, rgba(255, 222, 239, 0.95), rgba(255, 244, 217, 0.92) 45%, rgba(209, 252, 238, 0.9) 100%);
+        }
+
+        .slide--voronoi {
+            background: radial-gradient(circle at 82% 22%, rgba(236, 255, 221, 0.92), rgba(221, 241, 255, 0.9) 40%, rgba(255, 228, 246, 0.9) 100%);
+        }
+
+        .slide--perlin {
+            background: radial-gradient(circle at 20% 76%, rgba(255, 235, 227, 0.92), rgba(228, 248, 255, 0.9) 45%, rgba(222, 255, 233, 0.9) 100%);
+        }
+
+        .slide--cellular {
+            background: radial-gradient(circle at 78% 78%, rgba(233, 255, 232, 0.92), rgba(246, 232, 255, 0.9) 45%, rgba(255, 241, 224, 0.9) 100%);
+        }
+
+        @media (max-width: 980px) {
+            .slide {
+                grid-template-columns: 1fr;
+                aspect-ratio: auto;
+            }
+
+            figure img {
+                max-height: 280px;
+            }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <section class="slide slide--lsystem">
+        <div class="slide__content">
+            <p class="slide__tag">Plant Grammar</p>
+            <h2>L-system（リンデンマイヤー・システム）</h2>
+            <div class="slide__details">
+                <div class="detail-block">
+                    <h3>発見の経緯</h3>
+                    <p>
+                        1968年に植物生理学者アリスティッド・リンデンマイヤーが、細胞分裂規則を記述するための文法として提案しました。</p>
+                </div>
+                <div class="detail-block">
+                    <h3>利用方法</h3>
+                    <p>
+                        コンピュータグラフィックスでは、文法規則を繰り返し適用して樹木や珊瑚の枝分かれを自動生成し、植物形状のモデリングを効率化します。</p>
+                </div>
+                <div class="detail-block">
+                    <h3>特徴</h3>
+                    <p>単純な書き換え規則を並列に適用するだけでスケール感のある自己相似構造を生み出せる点が強みです。</p>
+                </div>
+                <div class="detail-block">
+                    <h3>自然の中の類似</h3>
+                    <p>シダ植物の葉脈や樹木の枝は、L-system の反復ルールで近似できる自己相似の階層構造を示します。</p>
+                </div>
+            </div>
+        </div>
+        <figure>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/1/1b/Fern_fronds.JPG" alt="シダ植物の葉の接写写真"
+                 loading="lazy"/>
+            <figcaption>Photo: Gailhampshire, CC BY 2.0 via Wikimedia Commons</figcaption>
+        </figure>
+    </section>
+
+    <section class="slide slide--voronoi">
+        <div class="slide__content">
+            <p class="slide__tag">Space Partition</p>
+            <h2>ボロノイ図（Voronoi Diagram）</h2>
+            <div class="slide__details">
+                <div class="detail-block">
+                    <h3>発見の経緯</h3>
+                    <p>
+                        18〜19世紀のデカルトやディリクレの研究を経て、1908年に数学者ゲオルギー・ボロノイが一般化した空間分割法です。</p>
+                </div>
+                <div class="detail-block">
+                    <h3>利用方法</h3>
+                    <p>
+                        都市計画の勢力圏解析や、ゲーム開発での自然な地形生成、科学可視化における最近領域の測定などに応用されます。</p>
+                </div>
+                <div class="detail-block">
+                    <h3>特徴</h3>
+                    <p>距離に基づき平面・空間を自動的に区画でき、分布の偏りを直感的に理解しやすい幾何構造を与えます。</p>
+                </div>
+                <div class="detail-block">
+                    <h3>自然の中の類似</h3>
+                    <p>
+                        トンボの翅脈や亀裂の入った泥の模様は、細胞が最短距離で領域を確保するボロノイ分割に近い構造を持ちます。</p>
+                </div>
+            </div>
+        </div>
+        <figure>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/6/6d/Libellula_quadrimaculata_wing_detail.jpg"
+                 alt="トンボの翅のクローズアップ" loading="lazy"/>
+            <figcaption>Photo: Felix Stahlberg, CC0 via Wikimedia Commons</figcaption>
+        </figure>
+    </section>
+
+    <section class="slide slide--perlin">
+        <div class="slide__content">
+            <p class="slide__tag">Organic Texture</p>
+            <h2>パーリンノイズ（Perlin Noise）</h2>
+            <div class="slide__details">
+                <div class="detail-block">
+                    <h3>発見の経緯</h3>
+                    <p>
+                        1983年にコンピューターグラフィックス研究者ケン・パーリンが、映画『トロン』の制作課題をきっかけに滑らかな疑似乱数生成法として考案しました。</p>
+                </div>
+                <div class="detail-block">
+                    <h3>利用方法</h3>
+                    <p>
+                        映像制作やゲームで雲・煙・地形などの自然な揺らぎを生成し、プロシージャルテクスチャや動的シェーダーの基礎として機能します。</p>
+                </div>
+                <div class="detail-block">
+                    <h3>特徴</h3>
+                    <p>
+                        連続性のある擬似乱数場を周波数帯で制御でき、焼き込みやタイル継ぎ目のないパターン生成に優れています。</p>
+                </div>
+                <div class="detail-block">
+                    <h3>自然の中の類似</h3>
+                    <p>積雲や霧の濃淡にみられる滑らかな濃度の遷移を、周波数の異なるノイズを合成して再現できます。</p>
+                </div>
+            </div>
+        </div>
+        <figure>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/f/f0/Cumulonimbus_Clouds_at_Yellowstone_NP.JPG"
+                 alt="積雲が広がる空" loading="lazy"/>
+            <figcaption>Photo: Brocken Inaglory, CC BY-SA 3.0 via Wikimedia Commons</figcaption>
+        </figure>
+    </section>
+
+    <section class="slide slide--cellular">
+        <div class="slide__content">
+            <p class="slide__tag">Rule-Based Growth</p>
+            <h2>セル・オートマトン（Cellular Automaton）</h2>
+            <div class="slide__details">
+                <div class="detail-block">
+                    <h3>発見の経緯</h3>
+                    <p>
+                        1940年代にジョン・フォン・ノイマンが自己増殖機械を理論化する中で考案し、その後ステファン・ウルフラムが計算理論として体系化しました。</p>
+                </div>
+                <div class="detail-block">
+                    <h3>利用方法</h3>
+                    <p>複雑系の研究や流体シミュレーション、都市成長モデル、暗号系の乱数生成など広く使われています。</p>
+                </div>
+                <div class="detail-block">
+                    <h3>特徴</h3>
+                    <p>
+                        近傍ルールを時間ステップごとに適用するだけで、カオス的パターンや自己組織化を示す非線形挙動を作り出します。</p>
+                </div>
+                <div class="detail-block">
+                    <h3>自然の中の類似</h3>
+                    <p>
+                        コノス・テキスタイル（イモガイ）の貝殻模様は、局所的な励起と抑制が連鎖するセル・オートマトン的な過程で説明できます。</p>
+                </div>
+            </div>
+        </div>
+        <figure>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/7/72/Conus_textile_-_Conus_textile.shell001.jpg"
+                 alt="コノス・テキスタイルの貝殻" loading="lazy"/>
+            <figcaption>Photo: Richard Parker, CC BY 2.0 via Wikimedia Commons</figcaption>
+        </figure>
+    </section>
+
+    <section class="references" aria-labelledby="references-heading">
+        <h2 id="references-heading">参考文献・リソース</h2>
+        <ul>
+            <li>Aristid Lindenmayer and Przemyslaw Prusinkiewicz, <em>The Algorithmic Beauty of Plants</em>,
+                Springer-Verlag, 1990.
+            </li>
+            <li>Georgy Voronoi, "Nouvelles applications des paramètres continus à la théorie des formes quadratiques",
+                <em>Journal für die reine und angewandte Mathematik</em>, 1908.
+            </li>
+            <li>Ken Perlin, "An Image Synthesizer", <em>Proceedings of SIGGRAPH 1985</em>.</li>
+            <li>Stephen Wolfram, <em>A New Kind of Science</em>, Wolfram Media, 2002.</li>
+            <li>Daniel Shiffman, <em>The Nature of Code</em>, self-published, 2012.</li>
+        </ul>
+    </section>
+</main>
+</body>
+</html>
