@@ -3,6 +3,15 @@
         let guiInstance = null;
         let engineRef = null;
         let drawCallback = null;
+        const customRuleUi = {
+            ruleEditor: null,
+            binaryController: null,
+            ruleNumberController: null,
+            patternState: {},
+            patternControllers: [],
+            info: null
+        };
+        let refreshRuleDisplays = () => {};
 
         function maybeAttachInlineGui(context) {
             if (!context || typeof window.dat === 'undefined') {
@@ -38,6 +47,46 @@
             const presets = engineRef.presets || {};
             const initialPatterns = engineRef.initialPatterns || {};
 
+            customRuleUi.ruleEditor = {binary: engineRef.getRuleBinary()};
+            customRuleUi.patternState = {};
+            customRuleUi.patternControllers = [];
+            customRuleUi.binaryController = null;
+            customRuleUi.info = {
+                binary: engineRef.getRuleBinary(),
+                neighborhoods: ''
+            };
+
+            const applyNeighborhoodSnapshot = () => {
+                const neighborhoods = engineRef.getRuleNeighborhoods();
+                neighborhoods.forEach(({pattern, result}) => {
+                    customRuleUi.patternState[pattern] = Boolean(result);
+                });
+                return neighborhoods;
+            };
+
+            const initialNeighborhoods = applyNeighborhoodSnapshot();
+
+            refreshRuleDisplays = () => {
+                const neighborhoods = applyNeighborhoodSnapshot();
+                customRuleUi.ruleEditor.binary = engineRef.getRuleBinary();
+                customRuleUi.info.binary = customRuleUi.ruleEditor.binary;
+                customRuleUi.info.neighborhoods = neighborhoods
+                    .map(n => `${n.pattern}→${n.result}`)
+                    .join(' ');
+
+                if (customRuleUi.binaryController) {
+                    customRuleUi.binaryController.updateDisplay();
+                }
+
+                if (customRuleUi.ruleNumberController) {
+                    customRuleUi.ruleNumberController.updateDisplay();
+                }
+
+                for (const entry of customRuleUi.patternControllers) {
+                    entry.controller.updateDisplay();
+                }
+            };
+
             // プリセット選択
             const presetOptions = {};
             for (const key in presets) {
@@ -60,18 +109,20 @@
                         updateAllControllers();
                         triggerRedraw();
                     }
+                    refreshRuleDisplays();
                 });
 
             // ルール設定
             const ruleFolder = guiInstance.addFolder('ルール設定');
             ruleFolder.open();
 
-            ruleFolder.add(settings, 'rule', 0, 255, 1)
+            customRuleUi.ruleNumberController = ruleFolder.add(settings, 'rule', 0, 255, 1)
                 .name('ルール番号')
                 .onChange(() => {
                     markCustom();
                     engineRef.regenerate();
                     triggerRedraw();
+                    refreshRuleDisplays();
                 });
 
             ruleFolder.add(settings, 'wraparound')
@@ -81,6 +132,32 @@
                     engineRef.regenerate();
                     triggerRedraw();
                 });
+
+            const customRuleFolder = ruleFolder.addFolder('カスタム編集');
+            customRuleFolder.open();
+
+            customRuleUi.binaryController = customRuleFolder
+                .add(customRuleUi.ruleEditor, 'binary')
+                .name('2進数(8桁)')
+                .onFinishChange((value) => {
+                    markCustom();
+                    engineRef.setRuleBinary(value, {silent: true});
+                    triggerRedraw();
+                    refreshRuleDisplays();
+                });
+
+            for (const {pattern} of initialNeighborhoods) {
+                const controller = customRuleFolder
+                    .add(customRuleUi.patternState, pattern)
+                    .name(`${pattern}`)
+                    .onChange((value) => {
+                        markCustom();
+                        engineRef.setRuleNeighborhood(pattern, value ? 1 : 0, {silent: true});
+                        triggerRedraw();
+                        refreshRuleDisplays();
+                    });
+                customRuleUi.patternControllers.push({pattern, controller});
+            }
 
             // 初期パターン
             const patternOptions = {};
@@ -105,6 +182,19 @@
                 .onChange(() => {
                     markCustom();
                     engineRef.regenerate();
+                    triggerRedraw();
+                });
+
+            const shapeOptions = {
+                '正方形': 'square',
+                '円': 'circle',
+                'ひし形': 'diamond'
+            };
+
+            displayFolder.add(settings, 'cellShape', shapeOptions)
+                .name('セル形状')
+                .onChange(() => {
+                    markCustom();
                     triggerRedraw();
                 });
 
@@ -177,30 +267,21 @@
             guiInstance.add(actions, 'exportImage').name('💾 画像を保存');
 
             // ルール表示ヘルパー
-            const ruleDisplay = {
-                binary: '',
-                neighborhoods: ''
-            };
-
             const infoFolder = guiInstance.addFolder('ルール情報');
-            infoFolder.add(ruleDisplay, 'binary').name('2進数表記').listen();
-            infoFolder.add(ruleDisplay, 'neighborhoods').name('近傍パターン').listen();
+            infoFolder.add(customRuleUi.info, 'binary').name('2進数表記').listen();
+            infoFolder.add(customRuleUi.info, 'neighborhoods').name('近傍パターン').listen();
 
-            setInterval(() => {
-                ruleDisplay.binary = engineRef.getRuleBinary();
-                const neighborhoods = engineRef.getRuleNeighborhoods();
-                ruleDisplay.neighborhoods = neighborhoods
-                    .map(n => `${n.pattern}→${n.result}`)
-                    .join(' ');
-            }, 500);
+            refreshRuleDisplays();
         }
 
         function updateAllControllers() {
             if (!guiInstance) {
                 return;
             }
-            for (const folder of guiInstance.__folders) {
-                folder.updateDisplay?.();
+            refreshRuleDisplays();
+            const folders = guiInstance.__folders || {};
+            for (const key in folders) {
+                folders[key]?.updateDisplay?.();
             }
             guiInstance.updateDisplay();
         }

@@ -27,6 +27,7 @@
             presetKey: DEFAULT_PRESET_KEY,
             rule: baseTemplate.rule ?? 30,
             cellSize: baseTemplate.cellSize ?? 4,
+            cellShape: baseTemplate.cellShape ?? 'square',
             initialPattern: baseTemplate.initialPattern ?? 'single',
             wraparound: baseTemplate.wraparound ?? false,
             colorScheme: baseTemplate.colorScheme ?? 'classic',
@@ -46,6 +47,8 @@
         let currentGeneration = [];
         let ruleTable = [];
 
+        const NEIGHBORHOODS = ['111', '110', '101', '100', '011', '010', '001', '000'];
+
         function structuredCloneFallback(source) {
             return JSON.parse(JSON.stringify(source ?? {}));
         }
@@ -58,6 +61,50 @@
                 table[7 - i] = parseInt(binary[i], 10);
             }
             return table;
+        }
+
+        function setRuleNumber(ruleNumber, options = {}) {
+            const sanitized = clampToInt(ruleNumber, 0, 255, settings.rule);
+            const changed = sanitized !== settings.rule;
+            settings.rule = sanitized;
+            ruleTable = buildRuleTable(settings.rule);
+            if (changed) {
+                settings.presetKey = 'custom';
+            }
+            if (changed && options.regenerate !== false) {
+                regenerate({silent: options.silent});
+            }
+            return settings.rule;
+        }
+
+        function sanitizeRuleBinary(binaryString) {
+            if (typeof binaryString !== 'string') {
+                return null;
+            }
+            const digits = binaryString.replace(/[^01]/g, '');
+            if (digits.length === 0) {
+                return null;
+            }
+            return digits.padStart(8, '0').slice(-8);
+        }
+
+        function setRuleBinary(binaryString, options = {}) {
+            const sanitized = sanitizeRuleBinary(binaryString);
+            if (!sanitized) {
+                return settings.rule;
+            }
+            const nextRule = parseInt(sanitized, 2);
+            return setRuleNumber(nextRule, options);
+        }
+
+        function setRuleNeighborhood(pattern, result, options = {}) {
+            const idx = NEIGHBORHOODS.indexOf(pattern);
+            if (idx === -1) {
+                return settings.rule;
+            }
+            const binary = getRuleBinary().split('');
+            binary[idx] = result ? '1' : '0';
+            return setRuleBinary(binary.join(''), options);
         }
 
         function getNextState(left, center, right) {
@@ -168,7 +215,7 @@
             }
 
             const keys = [
-                'rule', 'cellSize', 'initialPattern', 'wraparound',
+                'rule', 'cellSize', 'cellShape', 'initialPattern', 'wraparound',
                 'colorScheme', 'hue', 'backgroundColor', 'cellColor', 'animationSpeed'
             ];
 
@@ -199,10 +246,16 @@
             }
 
             if (Object.prototype.hasOwnProperty.call(patch, 'rule')) {
-                settings.rule = clampToInt(patch.rule, 0, 255, settings.rule);
+                setRuleNumber(patch.rule, {regenerate: false, silent: true});
+            }
+            if (Object.prototype.hasOwnProperty.call(patch, 'ruleBinary')) {
+                setRuleBinary(patch.ruleBinary, {regenerate: false, silent: true});
             }
             if (Object.prototype.hasOwnProperty.call(patch, 'cellSize')) {
                 settings.cellSize = clampToInt(patch.cellSize, 1, 20, settings.cellSize);
+            }
+            if (Object.prototype.hasOwnProperty.call(patch, 'cellShape')) {
+                settings.cellShape = String(patch.cellShape || settings.cellShape);
             }
             if (Object.prototype.hasOwnProperty.call(patch, 'initialPattern')) {
                 settings.initialPattern = String(patch.initialPattern || 'single');
@@ -237,6 +290,7 @@
             return {
                 rule: settings.rule,
                 cellSize: settings.cellSize,
+                cellShape: settings.cellShape,
                 initialPattern: settings.initialPattern,
                 wraparound: settings.wraparound,
                 colorScheme: settings.colorScheme,
@@ -254,16 +308,10 @@
 
         function getRuleNeighborhoods() {
             const binary = getRuleBinary();
-            return [
-                {pattern: '111', result: parseInt(binary[0], 10)},
-                {pattern: '110', result: parseInt(binary[1], 10)},
-                {pattern: '101', result: parseInt(binary[2], 10)},
-                {pattern: '100', result: parseInt(binary[3], 10)},
-                {pattern: '011', result: parseInt(binary[4], 10)},
-                {pattern: '010', result: parseInt(binary[5], 10)},
-                {pattern: '001', result: parseInt(binary[6], 10)},
-                {pattern: '000', result: parseInt(binary[7], 10)}
-            ];
+            return NEIGHBORHOODS.map((pattern, index) => ({
+                pattern,
+                result: parseInt(binary[index], 10)
+            }));
         }
 
         return {
@@ -281,6 +329,8 @@
             getSettingsSnapshot,
             getRuleBinary,
             getRuleNeighborhoods,
+            setRuleBinary,
+            setRuleNeighborhood,
             presets: PRESETS,
             initialPatterns: INITIAL_PATTERNS
         };

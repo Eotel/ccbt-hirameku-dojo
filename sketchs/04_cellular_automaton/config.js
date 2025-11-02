@@ -6,6 +6,7 @@
             settings: {
                 rule: 30,
                 cellSize: 4,
+                cellShape: 'square',
                 initialPattern: 'single',
                 wraparound: false,
                 colorScheme: 'classic',
@@ -21,6 +22,7 @@
             settings: {
                 rule: 90,
                 cellSize: 4,
+                cellShape: 'square',
                 initialPattern: 'single',
                 wraparound: false,
                 colorScheme: 'gradient',
@@ -36,6 +38,7 @@
             settings: {
                 rule: 110,
                 cellSize: 4,
+                cellShape: 'square',
                 initialPattern: 'random-sparse',
                 wraparound: false,
                 colorScheme: 'gradient',
@@ -51,6 +54,7 @@
             settings: {
                 rule: 150,
                 cellSize: 4,
+                cellShape: 'square',
                 initialPattern: 'single',
                 wraparound: false,
                 colorScheme: 'gradient',
@@ -66,6 +70,7 @@
             settings: {
                 rule: 184,
                 cellSize: 4,
+                cellShape: 'square',
                 initialPattern: 'random-dense',
                 wraparound: true,
                 colorScheme: 'gradient',
@@ -81,6 +86,7 @@
             settings: {
                 rule: 54,
                 cellSize: 4,
+                cellShape: 'square',
                 initialPattern: 'random-sparse',
                 wraparound: true,
                 colorScheme: 'gradient',
@@ -96,6 +102,7 @@
             settings: {
                 rule: 126,
                 cellSize: 4,
+                cellShape: 'square',
                 initialPattern: 'single',
                 wraparound: false,
                 colorScheme: 'rainbow',
@@ -111,6 +118,7 @@
             settings: {
                 rule: 182,
                 cellSize: 4,
+                cellShape: 'square',
                 initialPattern: 'single',
                 wraparound: false,
                 colorScheme: 'gradient',
@@ -127,6 +135,7 @@
     const BASE_TEMPLATE = {
         rule: 30,
         cellSize: 4,
+        cellShape: 'square',
         initialPattern: 'single',
         wraparound: false,
         colorScheme: 'classic',
