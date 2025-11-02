@@ -16,35 +16,35 @@
             box-sizing: border-box;
         }
 
-        body {
-            margin: 0;
-            min-height: 100vh;
-            padding: clamp(8px, 2.5vw, 32px);
-            font-family: var(--font-ui);
-            background: var(--bg-body);
-            display: flex;
-            justify-content: center;
-        }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        padding: clamp(0px, 1vw, 16px);
+        font-family: var(--font-ui);
+        background: var(--bg-body);
+        display: flex;
+        justify-content: center;
+      }
 
-        main {
-            display: flex;
-            flex-direction: column;
-            gap: clamp(36px, 5vh, 64px);
-            width: min(1700px, 98vw);
-        }
+      main {
+        display: flex;
+        flex-direction: column;
+        gap: clamp(32px, 4vh, 56px);
+        width: min(2200px, 100vw);
+      }
 
-        .slide {
-            aspect-ratio: 16 / 9;
-            border-radius: clamp(24px, 4vw, 48px);
-            padding: clamp(24px, 3.4vw, 48px);
-            display: grid;
-            grid-template-columns: minmax(0, 5fr) minmax(0, 4.5fr);
-            gap: clamp(24px, 2.6vw, 40px);
-            color: #1b1734;
-            box-shadow: var(--shadow-lg);
-            position: relative;
-            overflow: hidden;
-        }
+      .slide {
+        aspect-ratio: 16 / 9;
+        border-radius: clamp(28px, 3vw, 44px);
+        padding: clamp(42px, 5vw, 88px);
+        display: grid;
+        grid-template-columns: minmax(0, 5fr) minmax(0, 5fr);
+        gap: clamp(36px, 3.5vw, 56px);
+        color: #1b1734;
+        box-shadow: var(--shadow-lg);
+        position: relative;
+        overflow: hidden;
+      }
 
         .slide::after {
             content: '';
@@ -55,50 +55,50 @@
             pointer-events: none;
         }
 
-        .slide__content {
-            display: flex;
-            flex-direction: column;
-            gap: clamp(12px, 1.5vw, 20px);
-            position: relative;
-            z-index: 1;
-        }
+      .slide__content {
+        display: flex;
+        flex-direction: column;
+        gap: clamp(20px, 2.5vw, 36px);
+        position: relative;
+        z-index: 1;
+      }
 
-        .slide__tag {
-            display: inline-flex;
-            align-items: center;
-            padding: 4px 12px;
-            border-radius: 999px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            background: rgba(255, 255, 255, 0.55);
-            color: rgba(34, 27, 63, 0.76);
-            margin: 0;
-        }
+      .slide__tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 20px;
+        border-radius: 999px;
+        font-size: clamp(1.2rem, 1.8vw, 1.8rem);
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        background: rgba(255, 255, 255, 0.55);
+        color: rgba(34, 27, 63, 0.76);
+        margin: 0;
+      }
 
-        .slide h2 {
-            margin: 0;
-            font-size: clamp(0.9rem, 1.3vw, 1.3rem);
-            letter-spacing: 0.06em;
-        }
+      .slide h2 {
+        margin: 0;
+        font-size: clamp(2.4rem, 4vw, 4.2rem);
+        letter-spacing: 0.06em;
+      }
 
-        .slide__details {
-            display: grid;
-            gap: clamp(12px, 1.4vw, 18px);
-        }
+      .slide__details {
+        display: grid;
+        gap: clamp(16px, 2vw, 28px);
+      }
 
-        .detail-block h3 {
-            margin: 0 0 6px;
-            font-size: clamp(1.05rem, 1.5vw, 1.3rem);
-            letter-spacing: 0.04em;
-        }
+      .detail-block h3 {
+        margin: 0 0 10px;
+        font-size: clamp(1.4rem, 2.4vw, 2.4rem);
+        letter-spacing: 0.04em;
+      }
 
-        .detail-block p {
-            margin: 0;
-            line-height: 1.6;
-            font-size: clamp(0.95rem, 1.2vw, 1.05rem);
-        }
+      .detail-block p {
+        margin: 0;
+        line-height: 1.75;
+        font-size: clamp(1.2rem, 1.8vw, 1.8rem);
+      }
 
         figure {
             margin: 0;
