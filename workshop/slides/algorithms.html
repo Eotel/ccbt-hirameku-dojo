@@ -46,14 +46,14 @@
         overflow: hidden;
       }
 
-        .slide::after {
-            content: '';
-            position: absolute;
-            inset: 18px;
-            border-radius: inherit;
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            pointer-events: none;
-        }
+      .slide::after {
+        content: '';
+        position: absolute;
+        inset: 18px;
+        border-radius: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        pointer-events: none;
+      }
 
       .slide__content {
         display: flex;
@@ -61,6 +61,73 @@
         gap: clamp(20px, 2.5vw, 36px);
         position: relative;
         z-index: 1;
+      }
+
+      body.js-enabled .slide {
+        display: none;
+      }
+
+      body.js-enabled .slide.is-active {
+        display: grid;
+      }
+
+      .slide-nav {
+        position: fixed;
+        bottom: clamp(16px, 4vw, 48px);
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: clamp(16px, 3vw, 32px);
+        padding: 12px 20px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.78);
+        box-shadow: 0 18px 40px rgba(18, 18, 43, 0.25);
+        font-size: clamp(1rem, 1.6vw, 1.4rem);
+        color: #1b1734;
+      }
+
+      .slide-nav__btn {
+        appearance: none;
+        border: none;
+        background: linear-gradient(135deg, rgba(255, 99, 233, 0.85), rgba(99, 209, 255, 0.85));
+        color: #141224;
+        width: clamp(56px, 5vw, 72px);
+        height: clamp(56px, 5vw, 72px);
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-size: clamp(1.8rem, 3vw, 2.6rem);
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+        box-shadow: 0 12px 24px rgba(255, 99, 233, 0.32);
+      }
+
+      .slide-nav__btn:hover,
+      .slide-nav__btn:focus-visible {
+        transform: translateY(-4px) scale(1.04);
+        box-shadow: 0 16px 30px rgba(99, 209, 255, 0.42);
+      }
+
+      .slide-nav__btn:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .slide-nav__count {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+      }
+
+      .slide-nav__hint {
+        font-size: clamp(0.8rem, 1vw, 0.95rem);
+        color: rgba(27, 23, 52, 0.6);
       }
 
       .slide__tag {
@@ -286,6 +353,70 @@
             <figcaption>Photo: Richard Parker, CC BY 2.0 via Wikimedia Commons</figcaption>
         </figure>
     </section>
+
+    <nav class="slide-nav" aria-label="スライド操作">
+        <button class="slide-nav__btn" type="button" id="slide-prev" aria-label="前のスライド" disabled>‹</button>
+        <div class="slide-nav__count">
+            <span id="slide-current">1</span>
+            <span>/</span>
+            <span id="slide-total">4</span>
+        </div>
+        <button class="slide-nav__btn" type="button" id="slide-next" aria-label="次のスライド">›</button>
+        <div class="slide-nav__hint">← / → でも操作できます</div>
+    </nav>
 </main>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    if (!slides.length) return;
+
+    const body = document.body;
+    body.classList.add('js-enabled');
+
+    const prevBtn = document.getElementById('slide-prev');
+    const nextBtn = document.getElementById('slide-next');
+    const currentLabel = document.getElementById('slide-current');
+    const totalLabel = document.getElementById('slide-total');
+
+    totalLabel.textContent = slides.length;
+
+    let index = 0;
+
+    const focusSlide = (nextIndex) => {
+      const clamped = Math.max(0, Math.min(slides.length - 1, nextIndex));
+      if (clamped === index) return;
+      slides[index].classList.remove('is-active');
+      index = clamped;
+      slides[index].classList.add('is-active');
+      currentLabel.textContent = index + 1;
+      prevBtn.disabled = index === 0;
+      nextBtn.disabled = index === slides.length - 1;
+    };
+
+    slides.forEach((slide, idx) => {
+      slide.setAttribute('role', 'group');
+      slide.setAttribute('aria-roledescription', 'slide');
+      slide.setAttribute('aria-label', `${idx + 1} / ${slides.length}`);
+    });
+
+    slides[0].classList.add('is-active');
+    currentLabel.textContent = 1;
+    prevBtn.disabled = true;
+    nextBtn.disabled = slides.length === 1;
+
+    prevBtn.addEventListener('click', () => focusSlide(index - 1));
+    nextBtn.addEventListener('click', () => focusSlide(index + 1));
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        focusSlide(index + 1);
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        focusSlide(index - 1);
+      }
+    });
+  });
+</script>
 </body>
 </html>
