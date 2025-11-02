@@ -40,14 +40,18 @@ let seed = 12345;   // noiseSeed と randomSeed をそろえる
 let asciiIndex = 0; // どのASCIIセットを使うか
 let shapeKit = null;
 
+const BASE_COLOR_HEX = '#00EEFF';
+let baseColor;
+let baseHueValue = 0;
+let baseSatValue = 0;
+let baseBriValue = 0;
+
+const HUE_JITTER = 35;       // 基準色からどれだけ色相を揺らすか（度）
+const SATURATION_JITTER = 20; // 彩度ノイズの振れ幅
+const BRIGHTNESS_JITTER = 25; // 明度ノイズの振れ幅
+
 // 好みで追加OK：ASCIIの候補
-const ASCII_SETS_DEFAULT = [
-    ['.', ':', '*', 'o', 'O', '#', '@'],
-    ['-', '/', '|', '\\', '+'],
-    ['<', '^', '>', 'v'],
-    ['□', '■'],
-    ['░', '▒', '▓', '█']
-];
+const ASCII_SETS_DEFAULT = [['.', ':', '*', 'o', 'O', '#', '@'], ['-', '/', '|', '\\', '+'], ['<', '^', '>', 'v'], ['□', '■'], ['░', '▒', '▓', '█']];
 
 let asciiSets = ASCII_SETS_DEFAULT.map((set) => [...set]);
 
@@ -60,6 +64,10 @@ function setup() {
         if (hint) hint.remove();
     }
     colorMode(HSB, 360, 100, 100, 1);
+    baseColor = color(BASE_COLOR_HEX);
+    baseHueValue = hue(baseColor);
+    baseSatValue = saturation(baseColor);
+    baseBriValue = brightness(baseColor);
     textAlign(CENTER, CENTER);
     textFont('monospace');
     strokeCap(SQUARE);
@@ -152,10 +160,20 @@ function drawBW(x, y, w, h, n) {
 // 2) HSBカラー：色相・彩度・明度を別ノイズで決める
 function drawHSB(x, y, w, h, nH, nS, nB) {
     noStroke();
-    const hue = map(nH, 0, 1, 180, 320);   // 青〜紫
-    const sat = map(nS, 0, 1, 30, 100);
-    const bri = map(nB, 0, 1, 30, 100);
-    fill(hue, sat, bri, 1);
+    if (!baseColor) {
+        baseColor = color(BASE_COLOR_HEX);
+        baseHueValue = hue(baseColor);
+        baseSatValue = saturation(baseColor);
+        baseBriValue = brightness(baseColor);
+    }
+    const hueOffset = map(nH, 0, 1, -HUE_JITTER, HUE_JITTER);
+    const satOffset = map(nS, 0, 1, -SATURATION_JITTER, SATURATION_JITTER);
+    const briOffset = map(nB, 0, 1, -BRIGHTNESS_JITTER, BRIGHTNESS_JITTER);
+
+    const nextHue = (baseHueValue + hueOffset + 360) % 360;
+    const nextSat = constrain(baseSatValue + satOffset, 0, 100);
+    const nextBri = constrain(baseBriValue + briOffset, 0, 100);
+    fill(nextHue, nextSat, nextBri, 1);
     rectMode(CENTER);
     rect(x, y, w, h);
 }
@@ -204,8 +222,7 @@ function drawASCII(cx, cy, w, h, ang, mag, n) {
     textSize(ts);
 
     // 色は白か濃い色を選ぶ例
-    if (idx > set.length / 2) fill(0, 0, 10);
-    else fill(0, 0, 0);
+    if (idx > set.length / 2) fill(0, 0, 10); else fill(0, 0, 0);
 
     if (useStroke) {
         stroke(0, 0, 100);
@@ -257,27 +274,18 @@ function drawShapes(cx, cy, w, h, ang, mag, n1, n2, n3) {
     const fillColor = color(hue, sat, bri, 1);
     const strokeColor = useStroke ? color(0, 0, 0) : null;
     const base = {
-        x: cx,
-        y: cy,
-        rotation: ang,
-        fill: fillColor,
-        stroke: strokeColor,
-        strokeWeight: useStroke ? sw : undefined
+        x: cx, y: cy, rotation: ang, fill: fillColor, stroke: strokeColor, strokeWeight: useStroke ? sw : undefined
     };
 
 
     const choice = floor(map(n1, 0, 1, 0, 4)); // 図形バリエーションを増やしたい場合はここを調整
     if (choice === 0) {
         shapeKit.rect({
-            ...base,
-            width: sz,
-            height: sz,
-            radius: s * 0.08
+            ...base, width: sz, height: sz, radius: s * 0.08
         });
     } else if (choice === 1) {
         shapeKit.circle({
-            ...base,
-            diameter: sz
+            ...base, diameter: sz
         });
 
         // shapeKit を使って同じセルに同心図形を重ねたい場合の例。
@@ -294,9 +302,7 @@ function drawShapes(cx, cy, w, h, ang, mag, n1, n2, n3) {
         // }
     } else if (choice === 2) {
         shapeKit.diamond({
-            ...base,
-            diameter: sz,
-            aspectRatio: map(n2, 0, 1, 0.6, 1.4)
+            ...base, diameter: sz, aspectRatio: map(n2, 0, 1, 0.6, 1.4)
         });
     } else {
         shapeKit.star({
@@ -312,16 +318,7 @@ function drawShapes(cx, cy, w, h, ang, mag, n1, n2, n3) {
 
 function drawHUD() {
     const totalSets = asciiSets.length;
-    const lines = [
-        `モード: ${mode}  1=白黒  2=HSB  3=ベクター  4=ASCII  5=図形`,
-        `グリッド: ${gridX} × ${gridY}  [ / ]`,
-        `ノイズ細かさ: ${nf(noiseScale, 1, 3)}  N ↑  M ↓`,
-        `アニメ速度: ${nf(timeSpeed, 1, 3)}  V ↑  B ↓`,
-        `線の描画: ${useStroke ? 'あり' : 'なし'}  O`,
-        `ガイド格子: ${showGrid ? '表示' : '非表示'}  G`,
-        `ASCIIセット: ${asciiIndex % max(1, totalSets)} / ${max(1, totalSets)}  C=切替  Shift+C=追加`,
-        `シード: ${seed}  R=入替  Space=${animate ? '一時停止' : '再生'}  S=保存`
-    ];
+    const lines = [`モード: ${mode}  1=白黒  2=HSB  3=ベクター  4=ASCII  5=図形`, `グリッド: ${gridX} × ${gridY}  [ / ]`, `ノイズ細かさ: ${nf(noiseScale, 1, 3)}  N ↑  M ↓`, `アニメ速度: ${nf(timeSpeed, 1, 3)}  V ↑  B ↓`, `線の描画: ${useStroke ? 'あり' : 'なし'}  O`, `ガイド格子: ${showGrid ? '表示' : '非表示'}  G`, `ASCIIセット: ${asciiIndex % max(1, totalSets)} / ${max(1, totalSets)}  C=切替  Shift+C=追加`, `シード: ${seed}  R=入替  Space=${animate ? '一時停止' : '再生'}  S=保存`];
     noStroke();
     fill(0, 0, 0, 0.7);
     rectMode(CORNER);
@@ -433,8 +430,6 @@ function requestAsciiSetFromPrompt() {
 
 if (typeof window !== 'undefined') {
     window.AsciiPatterns = {
-        add: addAsciiSet,
-        list: () => asciiSets.map((set) => [...set]),
-        reset: resetAsciiSets
+        add: addAsciiSet, list: () => asciiSets.map((set) => [...set]), reset: resetAsciiSets
     };
 }

@@ -7,6 +7,12 @@ const SETTINGS = {
     fillOpacity: 210,
     outlineOpacity: 185,
     outlineWeight: 1.6,
+    outlineColorKey: 'sepia',
+    outlineCustomColors: {
+        custom1: '#f97316',
+        custom2: '#0ea5e9',
+        custom3: '#22c55e'
+    },
     showEdges: true,
     showSeeds: true,
     highlightHover: true,
@@ -102,6 +108,25 @@ const PALETTE_META = {
 
 const PALETTE_ORDER = Object.keys(PALETTES);
 
+const DEFAULT_OUTLINE_CUSTOM_COLORS = {
+    custom1: '#f97316',
+    custom2: '#0ea5e9',
+    custom3: '#22c55e'
+};
+
+const OUTLINE_COLOR_OPTIONS = {
+    sepia: {label: 'セピアブラウン', value: [90, 60, 30]},
+    midnight: {label: 'ミッドナイトブルー', value: [42, 62, 94]},
+    moss: {label: 'モスグリーン', value: [46, 84, 63]},
+    coral: {label: 'コーラル', value: [196, 84, 74]},
+    ivory: {label: 'アイボリー', value: [234, 226, 202]},
+    custom1: {label: 'カスタム 1', isCustom: true, default: DEFAULT_OUTLINE_CUSTOM_COLORS.custom1},
+    custom2: {label: 'カスタム 2', isCustom: true, default: DEFAULT_OUTLINE_CUSTOM_COLORS.custom2},
+    custom3: {label: 'カスタム 3', isCustom: true, default: DEFAULT_OUTLINE_CUSTOM_COLORS.custom3}
+};
+
+const OUTLINE_COLOR_KEYS = Object.keys(OUTLINE_COLOR_OPTIONS);
+
 let points = [];
 let delaunay = null;
 let voronoi = null;
@@ -155,6 +180,7 @@ function draw() {
     }
 
     const palette = getPaletteColors(SETTINGS.paletteName);
+    const outlineColor = getOutlineColorRgb();
 
     for (let i = 0; i < points.length; i++) {
         const polygon = voronoi.cellPolygon(i);
@@ -175,7 +201,7 @@ function draw() {
 
         if (SETTINGS.showEdges) {
             const strokeAlpha = isHovered ? Math.min(255, SETTINGS.outlineOpacity + 50) : SETTINGS.outlineOpacity;
-            stroke(90, 60, 30, strokeAlpha);
+            stroke(outlineColor[0], outlineColor[1], outlineColor[2], strokeAlpha);
             const extra = isHovered ? 0.6 : 0;
             strokeWeight(SETTINGS.outlineWeight + extra);
         } else {
@@ -187,12 +213,12 @@ function draw() {
     }
 
     if (SETTINGS.showSeeds) {
-        stroke(90, 60, 30, 220);
+        stroke(outlineColor[0], outlineColor[1], outlineColor[2], 220);
         for (let i = 0; i < points.length; i++) {
             const [x, y] = points[i];
-            const size = SETTINGS.highlightHover && i === hoveredIndex ? 10 : 8;
+            const seedDiameter = SETTINGS.highlightHover && i === hoveredIndex ? 10 : 8;
             fill(255, 255, 255, 220);
-            circle(x, y, size);
+            circle(x, y, seedDiameter);
         }
         noStroke();
     }
@@ -254,6 +280,7 @@ function drawOverlay() {
         return;
     }
     resetMatrix();
+    const outlineLabel = getOutlineColorDisplayText();
     noStroke();
     fill(96, 70, 40, 180);
     const boxWidth = min(420, width - 36);
@@ -269,7 +296,7 @@ function drawOverlay() {
         `点の数: ${points.length} / 目標 ${SETTINGS.initialPoints}\n` +
         `パレット: ${paletteLabel}\n` +
         `塗り: ${SETTINGS.useFill ? 'ON' : 'OFF'} α${Math.round(SETTINGS.fillOpacity)}  ` +
-        `線: ${SETTINGS.showEdges ? 'ON' : 'OFF'} 太さ${SETTINGS.outlineWeight.toFixed(1)}\n` +
+        `線: ${SETTINGS.showEdges ? 'ON' : 'OFF'} 太さ${SETTINGS.outlineWeight.toFixed(1)} 色${outlineLabel}\n` +
         `セル形状: ${cellMode}\n` +
         `r: 再配置  c: クリア  s: 保存  p: パレット変更\n` +
         `f: 塗り  l: 線  o: 細胞  g: 点  h: ハイライト  i: 情報`,
@@ -282,11 +309,12 @@ function updateStatusPanel() {
     const panel = document.getElementById('status-panel');
     if (!panel) return;
     const paletteLabel = getPaletteLabel(SETTINGS.paletteName);
+    const outlineLabel = getOutlineColorDisplayText();
     panel.innerHTML = `
   <p><strong>今の点</strong>: ${points.length} / 目標 ${SETTINGS.initialPoints}</p>
   <p><strong>パレット</strong>: ${paletteLabel}</p>
   <p><strong>塗り</strong>: ${SETTINGS.useFill ? 'ON' : 'OFF'} (α ${Math.round(SETTINGS.fillOpacity)})</p>
-  <p><strong>境界線</strong>: ${SETTINGS.showEdges ? 'ON' : 'OFF'} / 太さ ${SETTINGS.outlineWeight.toFixed(1)}</p>
+  <p><strong>境界線</strong>: ${SETTINGS.showEdges ? 'ON' : 'OFF'} / 太さ ${SETTINGS.outlineWeight.toFixed(1)} / 色 ${outlineLabel}</p>
   <p><strong>セル形状</strong>: ${SETTINGS.useOrganicCells ? 'Organic' : 'Straight'}</p>
   <p class="refresh-hint">r: 再配置 / c: クリア / s: 保存 / p: パレット変更 / i: 情報</p>
 `;
@@ -317,6 +345,83 @@ function normalizeColorEntry(color) {
         }
     }
     return [255, 255, 255];
+}
+
+function getOutlineColorEntry(key) {
+    return OUTLINE_COLOR_OPTIONS[key] ?? OUTLINE_COLOR_OPTIONS.sepia;
+}
+
+function getOutlineColorLabel(key) {
+    return getOutlineColorEntry(key).label ?? key;
+}
+
+function getOutlineColorRgbByKey(key) {
+    const entry = getOutlineColorEntry(key);
+    if (entry?.isCustom) {
+        ensureOutlineCustomColor(key, entry);
+        const hex = SETTINGS.outlineCustomColors?.[key] ?? entry.default ?? DEFAULT_OUTLINE_CUSTOM_COLORS.custom1;
+        return normalizeColorEntry(hex);
+    }
+    return normalizeColorEntry(entry.value);
+}
+
+function getOutlineColorRgb() {
+    return getOutlineColorRgbByKey(SETTINGS.outlineColorKey);
+}
+
+function getOutlineColorHex(key) {
+    const entry = getOutlineColorEntry(key);
+    if (entry?.isCustom) {
+        ensureOutlineCustomColor(key, entry);
+        return sanitizeHex(SETTINGS.outlineCustomColors?.[key] ?? entry.default);
+    }
+    const rgb = getOutlineColorRgbByKey(key);
+    return rgbArrayToHex(rgb);
+}
+
+function getOutlineColorDisplayText() {
+    const key = SETTINGS.outlineColorKey;
+    const label = getOutlineColorLabel(key);
+    const entry = getOutlineColorEntry(key);
+    if (entry?.isCustom) {
+        return `${label} (${getOutlineColorHex(key).toUpperCase()})`;
+    }
+    return label;
+}
+
+function ensureOutlineCustomColor(key, entry) {
+    if (!SETTINGS.outlineCustomColors) {
+        SETTINGS.outlineCustomColors = {...DEFAULT_OUTLINE_CUSTOM_COLORS};
+    }
+    if (!SETTINGS.outlineCustomColors[key]) {
+        SETTINGS.outlineCustomColors[key] = entry?.default ?? DEFAULT_OUTLINE_CUSTOM_COLORS[key] ?? '#ffffff';
+    }
+}
+
+function setOutlineCustomColor(key, value) {
+    const entry = getOutlineColorEntry(key);
+    ensureOutlineCustomColor(key, entry);
+    SETTINGS.outlineCustomColors[key] = sanitizeHex(value ?? entry?.default ?? DEFAULT_OUTLINE_CUSTOM_COLORS[key] ?? '#ffffff');
+}
+
+function sanitizeHex(value) {
+    if (typeof value !== 'string') return '#ffffff';
+    let hex = value.trim();
+    if (!hex.startsWith('#')) {
+        hex = `#${hex}`;
+    }
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hex)) {
+        if (hex.length === 4) {
+            hex = `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`;
+        }
+        return hex.toLowerCase();
+    }
+    return '#ffffff';
+}
+
+function rgbArrayToHex([r, g, b]) {
+    const toHex = (channel) => clampChannel(channel).toString(16).padStart(2, '0');
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
 function captureScreenshot() {
@@ -669,6 +774,35 @@ function injectControlStyles() {
   #voronoi-control-panel .palette-preview span {
    height: 100%;
   }
+  #voronoi-control-panel .outline-color-preview {
+   width: 100%;
+   height: 24px;
+   margin-top: 6px;
+   border-radius: 10px;
+   border: 1px solid rgba(148, 163, 184, 0.4);
+   box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.25);
+  }
+  #voronoi-control-panel .outline-custom-picker {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 8px;
+   margin-top: 8px;
+   font-size: 0.82rem;
+   color: rgba(255, 247, 222, 0.92);
+  }
+  #voronoi-control-panel .outline-custom-picker.hidden {
+   display: none;
+  }
+  #voronoi-control-panel .outline-custom-picker input[type="color"] {
+   width: 42px;
+   height: 26px;
+   padding: 0;
+   border: 1px solid rgba(148, 163, 184, 0.45);
+   border-radius: 6px;
+   background: transparent;
+   cursor: pointer;
+  }
   #voronoi-control-panel .button-row {
    display: flex;
    flex-wrap: wrap;
@@ -793,17 +927,24 @@ function initControlPanel() {
         SETTINGS.showEdges = checked;
         redraw();
         updateStatusPanel();
+        updateOutlineControlDisabledState();
+    });
+
+    controlElements.outlineColor = addOutlineColorControl(panel, SETTINGS.outlineColorKey, (value) => {
+        SETTINGS.outlineColorKey = value;
+        redraw();
+        updateStatusPanel();
     });
 
     controlElements.outlineWeight = addSliderControl(panel, {
         label: '線の太さ',
         min: 0.4,
-        max: 12,
+        max: 30,
         step: 0.1,
         value: SETTINGS.outlineWeight,
         format: (value) => value.toFixed(1),
         onChange: (value) => {
-            SETTINGS.outlineWeight = value;
+            SETTINGS.outlineWeight = Math.min(30, value);
             redraw();
             updateStatusPanel();
         }
@@ -914,6 +1055,7 @@ function initControlPanel() {
     document.body.appendChild(panel);
     controlElements.panel = panel;
     updateOrganicControlDisabledState();
+    updateOutlineControlDisabledState();
 }
 
 function addSectionTitle(panel, text) {
@@ -954,6 +1096,85 @@ function addPalettePreview(panel) {
     preview.className = 'palette-preview';
     panel.appendChild(preview);
     return preview;
+}
+
+function addOutlineColorControl(panel, initialValue, onChange) {
+    const group = document.createElement('div');
+    group.className = 'control-group';
+
+    const label = document.createElement('label');
+    label.className = 'control-label';
+    label.textContent = '線の色';
+    group.appendChild(label);
+
+    const select = document.createElement('select');
+    for (const key of OUTLINE_COLOR_KEYS) {
+        const option = document.createElement('option');
+        option.value = key;
+        option.textContent = getOutlineColorLabel(key);
+        select.appendChild(option);
+    }
+    select.value = initialValue;
+
+    const preview = document.createElement('div');
+    preview.className = 'outline-color-preview';
+    updateOutlineColorPreview(preview, initialValue);
+
+    const customWrapper = document.createElement('div');
+    customWrapper.className = 'outline-custom-picker hidden';
+    const customLabel = document.createElement('span');
+    customLabel.textContent = 'カスタム色';
+    const colorInput = document.createElement('input');
+    colorInput.type = 'color';
+    colorInput.value = getOutlineColorHex(initialValue);
+    colorInput.addEventListener('input', () => {
+        const key = select.value;
+        setOutlineCustomColor(key, colorInput.value);
+        updateOutlineColorPreview(preview, key);
+        onChange(key);
+    });
+    customWrapper.appendChild(customLabel);
+    customWrapper.appendChild(colorInput);
+
+    const control = {
+        select,
+        preview,
+        group,
+        customWrapper,
+        colorInput,
+        updateCustomUI(key) {
+            const targetKey = key ?? this.select.value;
+            const entry = getOutlineColorEntry(targetKey);
+            const isCustom = Boolean(entry?.isCustom);
+            this.customWrapper.classList.toggle('hidden', !isCustom);
+            this.colorInput.disabled = !isCustom;
+            if (isCustom) {
+                this.colorInput.value = getOutlineColorHex(targetKey);
+            }
+        }
+    };
+
+    select.addEventListener('change', () => {
+        const value = select.value;
+        updateOutlineColorPreview(preview, value);
+        control.updateCustomUI(value);
+        onChange(value);
+    });
+
+    group.appendChild(select);
+    group.appendChild(preview);
+    group.appendChild(customWrapper);
+    panel.appendChild(group);
+
+    control.updateCustomUI(initialValue);
+
+    return control;
+}
+
+function updateOutlineColorPreview(element, key) {
+    if (!element) return;
+    const [r, g, b] = getOutlineColorRgbByKey(key);
+    element.style.background = `rgb(${r}, ${g}, ${b})`;
 }
 
 function addCheckboxControl(panel, text, initialValue, onChange) {
@@ -1026,6 +1247,24 @@ function updateOrganicControlDisabledState() {
     toggleSlider(controlElements.organicNoiseScale, disabled);
 }
 
+function updateOutlineControlDisabledState() {
+    const disabled = !SETTINGS.showEdges;
+    toggleSlider(controlElements.outlineWeight, disabled);
+    toggleSlider(controlElements.outlineOpacity, disabled);
+    if (controlElements.outlineColor) {
+        const outlineControl = controlElements.outlineColor;
+        outlineControl.select.disabled = disabled;
+        if (outlineControl.group) {
+            outlineControl.group.classList.toggle('disabled', disabled);
+        }
+        if (disabled) {
+            outlineControl.colorInput.disabled = true;
+        } else if (typeof outlineControl.updateCustomUI === 'function') {
+            outlineControl.updateCustomUI();
+        }
+    }
+}
+
 function toggleSlider(control, disabled) {
     if (!control) return;
     control.input.disabled = disabled;
@@ -1051,6 +1290,13 @@ function syncControlPanel() {
     if (controlElements.showEdges) {
         controlElements.showEdges.checked = SETTINGS.showEdges;
     }
+    if (controlElements.outlineColor) {
+        controlElements.outlineColor.select.value = SETTINGS.outlineColorKey;
+        updateOutlineColorPreview(controlElements.outlineColor.preview, SETTINGS.outlineColorKey);
+        if (typeof controlElements.outlineColor.updateCustomUI === 'function') {
+            controlElements.outlineColor.updateCustomUI(SETTINGS.outlineColorKey);
+        }
+    }
     setSliderValue(controlElements.outlineWeight, SETTINGS.outlineWeight);
     setSliderValue(controlElements.outlineOpacity, SETTINGS.outlineOpacity);
     if (controlElements.useOrganicCells) {
@@ -1069,6 +1315,7 @@ function syncControlPanel() {
         controlElements.showOverlay.checked = SETTINGS.showOverlay;
     }
     updateOrganicControlDisabledState();
+    updateOutlineControlDisabledState();
 }
 
 function setSliderValue(control, value) {

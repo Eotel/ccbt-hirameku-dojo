@@ -80,12 +80,12 @@
         const generationsToShow = Math.min(grid.length, maxGenerations);
 
         for (let gen = 0; gen < generationsToShow; gen++) {
-            const row = grid[gen];
+            const generationRow = grid[gen];
             const y = gen * cellSize;
             const fillColor = getCellColor(settings, gen, generationsToShow);
 
-            for (let i = 0; i < row.length; i++) {
-                if (row[i] === 1) {
+            for (let i = 0; i < generationRow.length; i++) {
+                if (generationRow[i] === 1) {
                     const x = i * cellSize;
                     drawCellShape({
                         shape: settings.cellShape,
@@ -97,8 +97,8 @@
                         fillColor,
                         settings,
                         totalGenerations: generationsToShow,
-                        gridWidth: row.length,
-                        value: row[i]
+                        gridWidth: generationRow.length,
+                        value: generationRow[i]
                     });
                 }
             }
@@ -374,7 +374,7 @@
             color: fillColor,
             cellSize: size,
             generation,
-            row: generation,
+            rowIndex: generation,
             column,
             value,
             totalGenerations,
