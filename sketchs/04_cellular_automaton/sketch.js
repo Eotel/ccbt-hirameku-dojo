@@ -35,6 +35,8 @@
     engine.applyPreset(config.DEFAULT_PRESET_KEY, {skipRegenerate: true, silent: true});
 
     function setup() {
+        ensureInlineScaffolding();
+
         const {width, height} = computeCanvasSize();
         engine.settings.canvasWidth = width;
         engine.settings.canvasHeight = height;
@@ -54,7 +56,7 @@
 
         ensureShapeKit();
 
-        maxGenerations = Math.floor(height / engine.settings.cellSize);
+        maxGenerations = Math.max(1, Math.floor(height / engine.settings.cellSize));
         engine.regenerate({silent: true});
 
         appContext = announceAppReady();
@@ -144,19 +146,39 @@
     }
 
     function computeCanvasSize() {
-        const containerWidth = typeof window !== 'undefined' ? window.innerWidth : 800;
-        const containerHeight = typeof window !== 'undefined' ? window.innerHeight : 600;
-        const aspectRatio = engine.aspectRatio || (4 / 3);
-
-        let width = Math.min(containerWidth - 40, 1200);
-        let height = Math.floor(width / aspectRatio);
-
-        if (height > containerHeight - 100) {
-            height = containerHeight - 100;
-            width = Math.floor(height * aspectRatio);
+        if (typeof window === 'undefined') {
+            const fallbackWidth = engine?.settings?.canvasWidth ?? 800;
+            const fallbackHeight = engine?.settings?.canvasHeight ?? 600;
+            return {width: fallbackWidth, height: fallbackHeight};
         }
 
-        return {width, height};
+        const padding = getBodyPaddingTotals();
+        const cellSize = Math.max(1, engine?.settings?.cellSize ?? 4);
+
+        const availableWidth = Math.max(cellSize, Math.floor(window.innerWidth - padding.horizontal));
+        const availableHeight = Math.max(cellSize, Math.floor(window.innerHeight - padding.vertical));
+
+        return {
+            width: availableWidth,
+            height: availableHeight
+        };
+    }
+
+    function getBodyPaddingTotals() {
+        if (typeof window === 'undefined' || typeof window.getComputedStyle !== 'function' || !document?.body) {
+            return {horizontal: 0, vertical: 0};
+        }
+
+        const style = window.getComputedStyle(document.body);
+        const parse = (value) => {
+            const result = parseFloat(value);
+            return Number.isFinite(result) ? result : 0;
+        };
+
+        return {
+            horizontal: parse(style.paddingLeft) + parse(style.paddingRight),
+            vertical: parse(style.paddingTop) + parse(style.paddingBottom)
+        };
     }
 
     function updateCanvasShellHeight(height) {
@@ -169,6 +191,90 @@
         }
     }
 
+    function ensureInlineScaffolding() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const body = document.body;
+        if (!body) {
+            return;
+        }
+
+        let container = document.getElementById('canvas-container');
+        const createdContainer = !container;
+        if (createdContainer) {
+            container = document.createElement('div');
+            container.id = 'canvas-container';
+            container.style.position = 'relative';
+            container.style.width = '100%';
+            container.style.maxWidth = '100%';
+            container.style.margin = '0 auto';
+            container.style.padding = '0';
+            container.style.display = 'flex';
+            container.style.justifyContent = 'center';
+            container.style.alignItems = 'center';
+            container.style.background = 'rgba(15, 23, 42, 0.6)';
+            container.style.borderRadius = '12px';
+            container.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.4)';
+            container.style.boxSizing = 'border-box';
+            body.insertBefore(container, body.firstChild);
+
+            body.style.margin = body.style.margin || '0';
+            body.style.overflowX = body.style.overflowX || 'hidden';
+            body.style.minHeight = body.style.minHeight || '100vh';
+            body.style.fontFamily = body.style.fontFamily || "'Hiragino Sans', 'Meiryo', sans-serif";
+            if (!body.style.background) {
+                body.style.background = '#0f172a';
+            }
+        }
+
+        let shell = document.getElementById('canvas-shell');
+        if (!shell && container) {
+            shell = document.createElement('div');
+            shell.id = 'canvas-shell';
+            shell.style.width = '100%';
+            shell.style.display = 'flex';
+            shell.style.justifyContent = 'center';
+            shell.style.alignItems = 'center';
+            container.appendChild(shell);
+        }
+
+        let guiContainer = document.getElementById('gui-container');
+        if (!guiContainer) {
+            guiContainer = document.createElement('div');
+            guiContainer.id = 'gui-container';
+            guiContainer.style.position = 'fixed';
+            guiContainer.style.top = '16px';
+            guiContainer.style.right = '16px';
+            guiContainer.style.zIndex = '1000';
+            guiContainer.style.maxWidth = '320px';
+            body.appendChild(guiContainer);
+        }
+
+        let statusPanel = document.getElementById('status-panel');
+        if (!statusPanel) {
+            statusPanel = document.createElement('div');
+            statusPanel.id = 'status-panel';
+            statusPanel.style.position = 'fixed';
+            statusPanel.style.bottom = '16px';
+            statusPanel.style.left = '16px';
+            statusPanel.style.background = 'rgba(30, 41, 59, 0.95)';
+            statusPanel.style.border = '1px solid rgba(148, 163, 184, 0.3)';
+            statusPanel.style.borderRadius = '10px';
+            statusPanel.style.padding = '16px 20px';
+            statusPanel.style.fontFamily = "'Monaco', 'Menlo', monospace";
+            statusPanel.style.fontSize = '13px';
+            statusPanel.style.lineHeight = '1.6';
+            statusPanel.style.color = '#cbd5e1';
+            statusPanel.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+            statusPanel.style.whiteSpace = 'pre-line';
+            statusPanel.style.maxWidth = '400px';
+            statusPanel.style.boxSizing = 'border-box';
+            body.appendChild(statusPanel);
+        }
+    }
+
     function announceAppReady() {
         const context = {
             engine,
@@ -176,9 +282,10 @@
                 const {width, height} = computeCanvasSize();
                 engine.settings.canvasWidth = width;
                 engine.settings.canvasHeight = height;
+                ensureGridMatchesCanvasWidth(width);
                 resizeCanvas(width, height);
                 updateCanvasShellHeight(height);
-                maxGenerations = Math.floor(height / engine.settings.cellSize);
+                maxGenerations = Math.max(1, Math.floor(height / engine.settings.cellSize));
                 redraw();
                 updateStatus();
             }
@@ -215,6 +322,19 @@
             shapeKit = Shapes.create();
         }
         return shapeKit;
+    }
+
+    function ensureGridMatchesCanvasWidth(canvasWidth) {
+        const cellSize = Math.max(1, engine.settings?.cellSize ?? 4);
+        const expectedColumns = Math.max(1, Math.floor(canvasWidth / cellSize));
+        const grid = engine.getGrid();
+        const currentColumns = Array.isArray(grid) && grid.length > 0 && Array.isArray(grid[0])
+            ? grid[0].length
+            : 0;
+
+        if (currentColumns !== expectedColumns) {
+            engine.regenerate({silent: true});
+        }
     }
 
     function drawCellShape(payload) {
