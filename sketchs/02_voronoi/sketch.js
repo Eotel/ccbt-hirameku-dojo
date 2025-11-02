@@ -17,7 +17,8 @@ const SETTINGS = {
   useOrganicCells: false,
   organicAmount: 28,
   organicNoiseScale: 0.0065,
-  organicSegmentLength: 54
+  organicSegmentLength: 54,
+  showOverlay: true
 };
 
 const BASE_CANVAS_WIDTH = SETTINGS.canvasWidth || 800;
@@ -102,6 +103,7 @@ let noiseOffset = (SETTINGS.randomSeed ?? Math.random() * 1000) * 0.37;
 let hoveredIndex = -1;
 let organicNoiseSeed = 0;
 let controlElements = {};
+let screenshotRequest = null;
 
 function setup() {
   const initialSize = computeCanvasSize();
@@ -189,8 +191,21 @@ function draw() {
     noStroke();
   }
 
-  drawOverlay();
+  if (SETTINGS.showOverlay && !screenshotRequest) {
+    drawOverlay();
+  }
   updateStatusPanel();
+
+  if (screenshotRequest) {
+    const {filename} = screenshotRequest;
+    screenshotRequest = null;
+    if (typeof saveCanvasWithTimestamp === 'function') {
+      saveCanvasWithTimestamp(filename);
+    } else {
+      saveCanvas(filename, 'png');
+    }
+    redraw();
+  }
 }
 
 function mouseMoved() {
@@ -232,8 +247,10 @@ function drawOverlay() {
   resetMatrix();
   noStroke();
   fill(96, 70, 40, 180);
-  const boxWidth = min(340, width - 36);
-  rect(18, height - 120, boxWidth, 102, 12);
+  const boxWidth = min(420, width - 36);
+  const boxHeight = 138;
+  const boxTop = height - boxHeight - 18;
+  rect(18, boxTop, boxWidth, boxHeight, 12);
   fill(255);
   textAlign(LEFT, TOP);
   textSize(13);
@@ -241,13 +258,14 @@ function drawOverlay() {
   const cellMode = SETTINGS.useOrganicCells ? 'Organic' : 'Straight';
   text(
     `点の数: ${points.length} / 目標 ${SETTINGS.initialPoints}\n` +
-    `パレット: ${paletteLabel}\n` +
-    `塗り: ${SETTINGS.useFill ? 'ON' : 'OFF'} α${Math.round(SETTINGS.fillOpacity)}  ` +
-    `線: ${SETTINGS.showEdges ? 'ON' : 'OFF'} 太さ${SETTINGS.outlineWeight.toFixed(1)}\n` +
-    `セル形状: ${cellMode}\n` +
-    `r: 再配置  c: クリア  s: 保存  p: パレット変更`,
+      `パレット: ${paletteLabel}\n` +
+      `塗り: ${SETTINGS.useFill ? 'ON' : 'OFF'} α${Math.round(SETTINGS.fillOpacity)}  ` +
+      `線: ${SETTINGS.showEdges ? 'ON' : 'OFF'} 太さ${SETTINGS.outlineWeight.toFixed(1)}\n` +
+      `セル形状: ${cellMode}\n` +
+      `r: 再配置  c: クリア  s: 保存  p: パレット変更\n` +
+      `f: 塗り  l: 線  o: 細胞  g: 点  h: ハイライト  i: 情報`,
     32,
-    height - 110
+    boxTop + 10
   );
 }
 
